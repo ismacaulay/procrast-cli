@@ -44,3 +44,7 @@ Other commands.
 procrast use <list>
     sets the currently used list
 ```
+
+### TODO
+
+- [ ] The list name needs to be unique, but enforced at the business logic level, not the db level
