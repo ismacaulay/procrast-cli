@@ -1,7 +1,8 @@
 use crate::models;
 
 pub trait Database {
-    fn get_lists(&self) -> Vec<String>;
+    fn get_lists(&self) -> Vec<models::List>;
+
     fn create_list(&self, title: &String);
     fn get_list(&self, title: &String) -> Option<models::List>;
 }
@@ -48,14 +49,24 @@ pub mod sqlite {
     }
 
     impl crate::db::Database for SQLiteDatabase {
-        fn get_lists(&self) -> Vec<String> {
+        fn get_lists(&self) -> Vec<models::List> {
             let mut stmt = self
                 .conn
-                .prepare("SELECT title FROM lists")
+                .prepare("SELECT id, title, description FROM lists")
                 .expect("Failed to prepare query");
 
             let list_iter = stmt
-                .query_map(params![], |row| Ok(row.get(0)?))
+                .query_map(NO_PARAMS, |row| {
+                    let desc = match row.get::<_, String>(2) {
+                        Ok(desc) => desc,
+                        _ => String::from(""),
+                    };
+                    Ok(models::List {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        description: desc,
+                    })
+                })
                 .expect("Failed to perform query_map");
 
             let mut lists = Vec::new();
@@ -97,4 +108,9 @@ pub mod sqlite {
                 .expect("Failed to create list");
         }
     }
+}
+
+pub fn get_lists() -> Vec<models::List> {
+    let db = sqlite::new();
+    return db.get_lists();
 }

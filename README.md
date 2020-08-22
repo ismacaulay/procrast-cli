@@ -47,4 +47,24 @@ procrast use <list>
 
 ### TODO
 
-- [ ] The list name needs to be unique, but enforced at the business logic level, not the db level
+- The list name needs to be unique, but enforced at the business logic level, not the db level
+- Handle args in an order independent way
+- Store DB file in .config/procast under \$HOME
+- Implement a table printer
+
+```
+let table = table::new();
+table.add_row(["ONE", "TWO", "THREE"]) // OK
+table.add_row(["foo", "bar", "baz"]) // OK
+table.add_row(["f", "b"]); // OK, empty string for last col
+table.add_row(["a", "b", "c", "d"]); // Err, to many cols
+
+table.print(std::out);
+```
+
+### ideas
+
+- sync lists to the server on start up
+  - use a history api to know what has changed since last sync
+  - ensure sync works if db file is deleted
+  - will need to resolve mismatched client/server db

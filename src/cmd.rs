@@ -1,46 +1,79 @@
-fn print_help_and_exit(code: i32) {
-    // TODO: implement printing help
-    println!("procrast <command>");
+pub mod list {
+    use crate::db;
 
-    std::process::exit(code);
-}
+    pub fn description() -> &'static str {
+        "Manage lists"
+    }
 
-mod cmd {
-    pub mod item {
-        fn description() -> &'static str {
-            return "Manage items";
-        }
+    pub fn process(args: &[String]) {
+        if args.len() == 0 {
+            let lists = db::get_lists();
 
-        fn print_item_help_and_exit(code: i32) {
-            // TODO: implement printing help
-            println!("procrast item <command>");
-            std::process::exit(code);
-        }
-
-        pub fn process(args: &[String]) -> bool {
-            println!("item cmd: {:?}", args);
-            if args.len() == 0 {
-                print_item_help_and_exit(0)
+            println!("NAME\tDESCRIPTION");
+            for l in lists.iter() {
+                println!("{}\t{}", l.title, l.description);
             }
-
-            match args[0].as_str() {
-                "add" => {
-                    println!("ADD!");
-                }
-                _ => {
-                    print_item_help_and_exit(1);
-                    return false;
-                }
-            }
-
-            return true;
+            return;
         }
+
+        match args[0].as_str() {
+            "create" => {}
+            "edit" => {}
+            "delete" => {}
+            "show" => {}
+            "help" => print_help_and_exit(0),
+            _ => print_help_and_exit(1),
+        }
+    }
+
+    fn print_help_and_exit(code: i32) {
+        println!("procrast list COMMAND");
+        std::process::exit(code);
     }
 }
 
-fn unknown(cmd: &String) -> bool {
-    println!("Unknown command: {}", cmd);
-    false
+pub mod item {
+    pub fn description() -> &'static str {
+        "Manage items"
+    }
+
+    pub fn process(args: &[String]) {
+        if args.len() == 0 {
+            print_help_and_exit(1);
+        }
+
+        match args[0].as_str() {
+            "add" => {}
+            "edit" => {}
+            "delete" => {}
+            "help" => print_help_and_exit(0),
+            _ => print_help_and_exit(1),
+        }
+    }
+
+    fn print_help_and_exit(code: i32) {
+        println!("procrast item COMMAND");
+        std::process::exit(code);
+    }
+}
+
+fn print_help_and_exit(code: i32) {
+    println!(
+        "
+
+Usage: procrast COMMAND
+
+A cli for managing your procrastination
+
+Commands:
+  list  {}
+  item  {}
+",
+        list::description(),
+        item::description()
+    );
+
+    std::process::exit(code);
 }
 
 pub fn process(args: &[String]) {
@@ -49,7 +82,9 @@ pub fn process(args: &[String]) {
     }
 
     match args[0].as_str() {
-        "item" => cmd::item::process(&args[1..]),
-        _ => unknown(&args[0]),
+        "list" => list::process(&args[1..]),
+        "item" => item::process(&args[1..]),
+        "help" | "--help" | "-h" => print_help_and_exit(0),
+        _ => print_help_and_exit(1),
     };
 }
