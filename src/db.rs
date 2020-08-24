@@ -8,20 +8,13 @@ pub trait Database {
 }
 
 pub mod sqlite {
-    use crate::models;
-    use directories::ProjectDirs;
+    use crate::{config, models};
     use rusqlite::{params, Connection, NO_PARAMS};
-    use std::{
-        fs,
-        path::{Path, PathBuf},
-    };
+    use std::path::{Path, PathBuf};
 
     fn get_database_path(name: &str) -> Option<PathBuf> {
-        if let Some(proj_dirs) = ProjectDirs::from("com", "ismacaul", "procrast") {
-            if !proj_dirs.data_dir().exists() {
-                fs::create_dir_all(proj_dirs.data_dir()).expect("Failed to create data dir");
-            }
-            return Some(proj_dirs.data_dir().join(name));
+        if let Some(data_dir) = config::get_data_dir() {
+            return Some(data_dir.join(name));
         }
         return None;
     }

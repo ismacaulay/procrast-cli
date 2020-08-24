@@ -1,5 +1,7 @@
 mod cmd;
+mod config;
 mod db;
+mod input;
 mod models;
 
 use std::env;
