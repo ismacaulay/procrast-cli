@@ -17,11 +17,58 @@ pub mod list {
         }
 
         match args[0].as_str() {
-            "create" => {}
+            "create" => {
+                let mut name: Option<&String> = None;
+                let mut description: Option<&String> = None;
+
+                if args.len() == 1 {
+                    println!("Ask user for input!");
+                } else {
+                    let mut idx = 1;
+                    while idx < args.len() {
+                        match args[idx].as_str() {
+                            "-n" => {
+                                idx += 1;
+
+                                if idx < args.len() {
+                                    name = Some(&args[idx]);
+                                    idx += 1;
+                                } else {
+                                    print_help_and_exit(1);
+                                }
+                            }
+                            "-d" => {
+                                idx += 1;
+
+                                if idx < args.len() {
+                                    description = Some(&args[idx]);
+                                    idx += 1;
+                                } else {
+                                    print_help_and_exit(1);
+                                }
+                            }
+                            _ => {
+                                println!("Unknown option '{}'", args[idx]);
+                                print_help_and_exit(1);
+                            }
+                        }
+                    }
+                }
+
+                if name == None {
+                    println!("Aborting: no list name");
+                } else {
+                    if description == None {
+                        db::create_list(name.unwrap(), &String::from(""));
+                    } else {
+                        db::create_list(name.unwrap(), &description.unwrap());
+                    }
+                }
+            }
             "edit" => {}
             "delete" => {}
             "show" => {}
-            "help" => print_help_and_exit(0),
+            "help" | "--help" | "-h" => print_help_and_exit(0),
             _ => print_help_and_exit(1),
         }
     }

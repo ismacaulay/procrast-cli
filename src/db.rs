@@ -3,24 +3,39 @@ use crate::models;
 pub trait Database {
     fn get_lists(&self) -> Vec<models::List>;
 
-    fn create_list(&self, title: &String);
+    fn create_list(&self, title: &String, description: &String);
     fn get_list(&self, title: &String) -> Option<models::List>;
 }
 
 pub mod sqlite {
     use crate::models;
+    use directories::ProjectDirs;
     use rusqlite::{params, Connection, NO_PARAMS};
-    use std::path::Path;
+    use std::{
+        fs,
+        path::{Path, PathBuf},
+    };
+
+    fn get_database_path(name: &str) -> Option<PathBuf> {
+        if let Some(proj_dirs) = ProjectDirs::from("com", "ismacaul", "procrast") {
+            if !proj_dirs.data_dir().exists() {
+                fs::create_dir_all(proj_dirs.data_dir()).expect("Failed to create data dir");
+            }
+            return Some(proj_dirs.data_dir().join(name));
+        }
+        return None;
+    }
 
     pub struct SQLiteDatabase {
         conn: rusqlite::Connection,
     }
 
     pub fn new() -> SQLiteDatabase {
-        let path = "./db.sqlite";
-        let new_database = !Path::new(path).exists();
+        let db_path_buf = get_database_path("db.sqlite").expect("Failed to get database path");
+        let db_path = Path::new(&db_path_buf);
+        let new_database = !db_path.exists();
 
-        let conn = Connection::open(&path).expect("Failed to open db");
+        let conn = Connection::open(&db_path).expect("Failed to open db");
         if new_database {
             conn.execute(
                 "CREATE TABLE lists (
@@ -102,9 +117,12 @@ pub mod sqlite {
             }
         }
 
-        fn create_list(&self, title: &String) {
+        fn create_list(&self, title: &String, description: &String) {
             self.conn
-                .execute("INSERT INTO lists (title) VALUES (?1)", params![title])
+                .execute(
+                    "INSERT INTO lists (title, description) VALUES (?1, ?2)",
+                    params![title, description],
+                )
                 .expect("Failed to create list");
         }
     }
@@ -113,4 +131,9 @@ pub mod sqlite {
 pub fn get_lists() -> Vec<models::List> {
     let db = sqlite::new();
     return db.get_lists();
+}
+
+pub fn create_list(title: &String, description: &String) {
+    let db = sqlite::new();
+    db.create_list(title, description);
 }
