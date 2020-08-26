@@ -4,7 +4,9 @@ pub trait Database {
     fn get_lists(&self) -> Vec<models::List>;
 
     fn create_list(&self, title: &String, description: &String);
-    fn get_list(&self, title: &String) -> Option<models::List>;
+    fn update_list(&self, list: &models::List);
+    fn find_list_by_title(&self, title: &String) -> Option<models::List>;
+    fn find_list_by_id(&self, id: &String) -> Option<models::List>;
 }
 
 pub mod sqlite {
@@ -84,7 +86,25 @@ pub mod sqlite {
             return lists;
         }
 
-        fn get_list(&self, title: &String) -> Option<models::List> {
+        fn create_list(&self, title: &String, description: &String) {
+            self.conn
+                .execute(
+                    "INSERT INTO lists (title, description) VALUES (?1, ?2)",
+                    params![title, description],
+                )
+                .expect("Failed to create list");
+        }
+
+        fn update_list(&self, list: &models::List) {
+            self.conn
+                .execute(
+                    "UPDATE lists SET title = ?2, description = ?3 WHERE id = ?1",
+                    params![list.id, list.title, list.description],
+                )
+                .expect("Failed to update list");
+        }
+
+        fn find_list_by_title(&self, title: &String) -> Option<models::List> {
             let result = self.conn.query_row(
                 "SELECT id, title, description FROM lists WHERE title = (?1)",
                 params![title],
@@ -103,20 +123,31 @@ pub mod sqlite {
 
             match result {
                 Ok(data) => Some(data),
-                Err(e) => {
-                    println!("Error: {:?}", e);
-                    None
-                }
+                Err(_) => None,
             }
         }
 
-        fn create_list(&self, title: &String, description: &String) {
-            self.conn
-                .execute(
-                    "INSERT INTO lists (title, description) VALUES (?1, ?2)",
-                    params![title, description],
-                )
-                .expect("Failed to create list");
+        fn find_list_by_id(&self, id: &String) -> Option<models::List> {
+            let result = self.conn.query_row(
+                "SELECT id, title, description FROM lists WHERE id = (?1)",
+                params![id],
+                |row| {
+                    let desc = match row.get::<_, String>(2) {
+                        Ok(desc) => desc,
+                        _ => String::from(""),
+                    };
+                    Ok(models::List {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        description: desc,
+                    })
+                },
+            );
+
+            match result {
+                Ok(data) => Some(data),
+                Err(_) => None,
+            }
         }
     }
 }
@@ -129,4 +160,19 @@ pub fn get_lists() -> Vec<models::List> {
 pub fn create_list(title: &String, description: &String) {
     let db = sqlite::new();
     db.create_list(title, description);
+}
+
+pub fn update_list(list: &models::List) {
+    let db = sqlite::new();
+    db.update_list(list);
+}
+
+pub fn find_list_by_title(title: &String) -> Option<models::List> {
+    let db = sqlite::new();
+    return db.find_list_by_title(title);
+}
+
+pub fn find_list_by_id(id: &String) -> Option<models::List> {
+    let db = sqlite::new();
+    return db.find_list_by_id(id);
 }

@@ -1,7 +1,11 @@
 use crate::config;
-use std::{env, fs, io::Read, process};
+use std::{
+    env, fs,
+    io::{Read, Write},
+    process,
+};
 
-pub fn get_file_input() -> String {
+pub fn get_file_input(text: Option<&String>) -> String {
     // TODO: how do we handle multiple platforms
     // TODO: what happens if EDITOR and nano dont exist
     // TODO: Handle errors better
@@ -13,7 +17,12 @@ pub fn get_file_input() -> String {
     let mut file_path = config::get_data_dir().expect("Failed to get data dir");
     file_path.push("PROCRAST_MESSAGE");
 
-    fs::File::create(&file_path).expect("Could not create the file");
+    let mut file = fs::File::create(&file_path).expect("Could not create the file");
+
+    if let Some(t) = text {
+        file.write_all(t.as_bytes())
+            .expect("Failed to write bytes to file");
+    }
 
     process::Command::new(editor)
         .arg(&file_path)

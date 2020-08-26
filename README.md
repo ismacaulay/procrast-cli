@@ -47,7 +47,8 @@ procrast use <list>
 
 ### TODO
 
-- The list name needs to be unique, but enforced at the business logic level, not the db level
+- The list title needs to be unique, but enforced at the business logic level, not the db level
+  - Or do we just handle duplicate lists?
 - Handle args in an order independent way
 - Store DB file in .config/procast under \$HOME
 - Implement a table printer
