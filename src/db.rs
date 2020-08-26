@@ -5,6 +5,7 @@ pub trait Database {
 
     fn create_list(&self, title: &String, description: &String);
     fn update_list(&self, list: &models::List);
+    fn delete_list(&self, list: &models::List);
     fn find_list_by_title(&self, title: &String) -> Option<models::List>;
     fn find_list_by_id(&self, id: &String) -> Option<models::List>;
 }
@@ -104,6 +105,12 @@ pub mod sqlite {
                 .expect("Failed to update list");
         }
 
+        fn delete_list(&self, list: &models::List) {
+            self.conn
+                .execute("DELETE FROM lists WHERE id = ?1", params![list.id])
+                .expect("Failed to delete list");
+        }
+
         fn find_list_by_title(&self, title: &String) -> Option<models::List> {
             let result = self.conn.query_row(
                 "SELECT id, title, description FROM lists WHERE title = (?1)",
@@ -165,6 +172,11 @@ pub fn create_list(title: &String, description: &String) {
 pub fn update_list(list: &models::List) {
     let db = sqlite::new();
     db.update_list(list);
+}
+
+pub fn delete_list(list: &models::List) {
+    let db = sqlite::new();
+    db.delete_list(list);
 }
 
 pub fn find_list_by_title(title: &String) -> Option<models::List> {

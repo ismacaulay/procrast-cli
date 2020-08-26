@@ -85,7 +85,21 @@ pub mod list {
                     }
                 }
             }
-            "delete" => {}
+            "delete" => {
+                if args.len() == 1 {
+                    // TODO: use current list
+                } else if args.len() == 2 {
+                    let list_id = &args[1];
+
+                    if let Some(list) = db::find_list_by_title(list_id).as_mut() {
+                        delete_list(list);
+                    } else if let Some(list) = db::find_list_by_id(list_id).as_mut() {
+                        delete_list(list);
+                    } else {
+                        println!("Not Found: {:?}", list_id);
+                    }
+                }
+            }
             "show" => {}
             "help" | "--help" | "-h" => print_help_and_exit(0),
             _ => print_help_and_exit(1),
@@ -108,6 +122,18 @@ pub mod list {
             }
 
             update_list_with_title_and_description(list, title, description);
+        }
+    }
+
+    fn delete_list(list: &models::List) {
+        println!("Are you sure you want to delete list '{}'?", list.title);
+        println!("This cannot be undone!");
+        print!("Enter ther name of the list to confirm:");
+        let result = input::get_stdin_input();
+        if result == list.title {
+            db::delete_list(list);
+        } else {
+            println!("Aborting: Entered name does not match {}", list.title);
         }
     }
 

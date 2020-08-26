@@ -1,7 +1,7 @@
 use crate::config;
 use std::{
     env, fs,
-    io::{Read, Write},
+    io::{stdin, stdout, Read, Write},
     process,
 };
 
@@ -38,4 +38,14 @@ pub fn get_file_input(text: Option<&String>) -> String {
     fs::File::create(&file_path).expect("Could not create file");
 
     return message;
+}
+
+pub fn get_stdin_input() -> String {
+    let mut message = String::new();
+    stdout().flush().expect("Failed to flush stdout");
+    stdin()
+        .read_line(&mut message)
+        .expect("Failed to get input");
+
+    return String::from(message.trim_end());
 }
