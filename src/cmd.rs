@@ -1,5 +1,15 @@
-use crate::db;
-use crate::CommandCtx;
+use crate::{config, db, CommandCtx};
+
+pub fn use_list(ctx: &CommandCtx) {
+    if ctx.params.len() != 0 {
+        let list_id = &ctx.params[0];
+        if let Some(list) = db::find_list(list_id) {
+            config::set_current_list(&list.id.to_string());
+        } else {
+            println!("Aborting: Could not find list '{}'", list_id)
+        }
+    }
+}
 
 pub fn list(_: &CommandCtx) {
     let lists = db::get_lists();
@@ -10,8 +20,12 @@ pub fn list(_: &CommandCtx) {
     }
 }
 
+pub fn item(_: &CommandCtx) {
+    // TODO: show list item for selected list?
+}
+
 pub mod list {
-    use crate::{db, input, models, CommandCtx};
+    use crate::{db, input, CommandCtx};
 
     pub fn create(ctx: &CommandCtx) {
         let mut title: Option<String> = None;
@@ -58,7 +72,7 @@ pub mod list {
             // TODO: use current list and show editor
         } else if ctx.params.len() == 1 {
             let list_id = &ctx.params[0];
-            if let Some(list) = find_list(list_id).as_mut() {
+            if let Some(list) = db::find_list(list_id).as_mut() {
                 let mut title: Option<String> = None;
                 let mut description: Option<String> = None;
 
@@ -103,7 +117,7 @@ pub mod list {
             // TODO: use current list
         } else {
             for p in ctx.params.iter() {
-                if let Some(list) = find_list(p) {
+                if let Some(list) = db::find_list(p) {
                     println!("Are you sure you want to delete list '{}'?", list.title);
                     println!("This cannot be undone!");
                     print!("Enter ther name of the list to confirm: ");
@@ -136,73 +150,6 @@ pub mod list {
 
         return None;
     }
-
-    fn find_list(list_id: &String) -> Option<models::List> {
-        let list = db::find_list_by_title(list_id);
-        if list.is_some() {
-            return list;
-        }
-
-        return db::find_list_by_id(list_id);
-    }
-    //     pub fn process(args: &[String]) {
-    //         match args[0].as_str() {
-    //             "delete" => {
-    //                 if args.len() == 1 {
-    //                     // TODO: use current list
-    //                 } else if args.len() == 2 {
-    //                     let list_id = &args[1];
-    //
-    //                     if let Some(list) = db::find_list_by_title(list_id).as_mut() {
-    //                         delete_list(list);
-    //                     } else if let Some(list) = db::find_list_by_id(list_id).as_mut() {
-    //                         delete_list(list);
-    //                     } else {
-    //                         println!("Not Found: {:?}", list_id);
-    //                     }
-    //                 }
-    //             }
-    //             "show" => {}
-    //             "help" | "--help" | "-h" => print_help_and_exit(0),
-    //             _ => print_help_and_exit(1),
-    //         }
-    //     }
-    //
-    //
-    //     fn delete_list(list: &models::List) {
-    //         println!("Are you sure you want to delete list '{}'?", list.title);
-    //         println!("This cannot be undone!");
-    //         print!("Enter ther name of the list to confirm:");
-    //         let result = input::get_stdin_input();
-    //         if result == list.title {
-    //             db::delete_list(list);
-    //         } else {
-    //             println!("Aborting: Entered name does not match {}", list.title);
-    //         }
-    //     }
 }
 
-pub mod item {
-    // pub fn description() -> &'static str {
-    //     "Manage items"
-    // }
-    //
-    // pub fn process(args: &[String]) {
-    //     if args.len() == 0 {
-    //         print_help_and_exit(1);
-    //     }
-    //
-    //     match args[0].as_str() {
-    //         "add" => {}
-    //         "edit" => {}
-    //         "delete" => {}
-    //         "help" => print_help_and_exit(0),
-    //         _ => print_help_and_exit(1),
-    //     }
-    // }
-    //
-    // fn print_help_and_exit(code: i32) {
-    //     println!("procrast item COMMAND");
-    //     std::process::exit(code);
-    // }
-}
+pub mod item {}

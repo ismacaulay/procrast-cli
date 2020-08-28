@@ -179,6 +179,15 @@ pub fn delete_list(list: &models::List) {
     db.delete_list(list);
 }
 
+pub fn find_list(title_or_id: &String) -> Option<models::List> {
+    let list = find_list_by_title(title_or_id);
+    if list.is_some() {
+        return list;
+    }
+
+    return find_list_by_id(title_or_id);
+}
+
 pub fn find_list_by_title(title: &String) -> Option<models::List> {
     let db = sqlite::new();
     return db.find_list_by_title(title);

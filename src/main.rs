@@ -217,65 +217,76 @@ fn main() {
     let app = Cli {
         name: "procrast",
         description: "A cli for managing your procrastination",
-        commands: vec![Command {
-            name: "list",
-            aliases: vec!["l"],
-            description: "manage lists",
-            params: CommandParams::None,
-            action: cmd::list,
-            flags: vec![],
-            subcommands: vec![
-                Command {
-                    name: "create",
-                    aliases: vec!["c"],
-                    description: "create a new list",
-                    params: CommandParams::None,
-                    action: cmd::list::create,
-                    subcommands: vec![],
-                    flags: vec![
-                        Flag {
-                            name: "title",
-                            aliases: vec!["t"],
-                            description: "the list title",
-                        },
-                        Flag {
-                            name: "desc",
-                            aliases: vec!["d"],
-                            description: "the list description",
-                        },
-                    ],
-                },
-                Command {
-                    name: "edit",
-                    aliases: vec!["e"],
-                    description: "Edit an existing list",
-                    params: CommandParams::Single("LIST"),
-                    action: cmd::list::edit,
-                    subcommands: vec![],
-                    flags: vec![
-                        Flag {
-                            name: "title",
-                            aliases: vec!["t"],
-                            description: "the list title",
-                        },
-                        Flag {
-                            name: "desc",
-                            aliases: vec!["d"],
-                            description: "the list description",
-                        },
-                    ],
-                },
-                Command {
-                    name: "delete",
-                    aliases: vec!["d"],
-                    description: "Delete one or more lists",
-                    params: CommandParams::Multi("LIST"),
-                    action: cmd::list::delete,
-                    subcommands: vec![],
-                    flags: vec![],
-                },
-            ],
-        }],
+        commands: vec![
+            Command {
+                name: "use",
+                aliases: vec!["u"],
+                description: "Set the default list",
+                params: CommandParams::Single("LIST"),
+                action: cmd::use_list,
+                flags: vec![],
+                subcommands: vec![],
+            },
+            Command {
+                name: "list",
+                aliases: vec!["l"],
+                description: "Manage lists",
+                params: CommandParams::None,
+                action: cmd::list,
+                flags: vec![],
+                subcommands: vec![
+                    Command {
+                        name: "create",
+                        aliases: vec!["c"],
+                        description: "create a new list",
+                        params: CommandParams::None,
+                        action: cmd::list::create,
+                        subcommands: vec![],
+                        flags: vec![
+                            Flag {
+                                name: "title",
+                                aliases: vec!["t"],
+                                description: "the list title",
+                            },
+                            Flag {
+                                name: "desc",
+                                aliases: vec!["d"],
+                                description: "the list description",
+                            },
+                        ],
+                    },
+                    Command {
+                        name: "edit",
+                        aliases: vec!["e"],
+                        description: "Edit an existing list",
+                        params: CommandParams::Single("LIST"),
+                        action: cmd::list::edit,
+                        subcommands: vec![],
+                        flags: vec![
+                            Flag {
+                                name: "title",
+                                aliases: vec!["t"],
+                                description: "the list title",
+                            },
+                            Flag {
+                                name: "desc",
+                                aliases: vec!["d"],
+                                description: "the list description",
+                            },
+                        ],
+                    },
+                    Command {
+                        name: "delete",
+                        aliases: vec!["d"],
+                        description: "Delete one or more lists",
+                        params: CommandParams::Multi("LIST"),
+                        action: cmd::list::delete,
+                        subcommands: vec![],
+                        flags: vec![],
+                    },
+                ],
+            },
+        ],
     };
 
     let args: Vec<String> = env::args().collect();
