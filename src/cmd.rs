@@ -1,10 +1,10 @@
-use crate::{config, db, CommandCtx};
+use crate::{db, CommandCtx};
 
 pub fn use_list(ctx: &CommandCtx) {
     if ctx.params.len() != 0 {
         let list_id = &ctx.params[0];
         if let Some(list) = db::find_list(list_id) {
-            config::set_current_list(&list.id.to_string());
+            db::set_current_list(&list.id.to_string());
         } else {
             println!("Aborting: Could not find list '{}'", list_id)
         }
@@ -14,9 +14,21 @@ pub fn use_list(ctx: &CommandCtx) {
 pub fn list(_: &CommandCtx) {
     let lists = db::get_lists();
 
+    // TODO: eventually current will be a uuid instead of i32
+    let current: i32 = match db::get_current_list() {
+        Some(c) => c.parse::<i32>().unwrap(),
+        None => -1,
+    };
+
     println!("ID\tNAME\tDESCRIPTION");
     for l in lists.iter() {
-        println!("{}\t{}\t{}", l.id, l.title, l.description);
+        println!(
+            "{}{}\t{}\t{}",
+            l.id,
+            if l.id == current { "*" } else { "" },
+            l.title,
+            l.description
+        );
     }
 }
 

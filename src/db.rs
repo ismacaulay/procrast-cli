@@ -2,6 +2,8 @@ use crate::models;
 
 pub trait Database {
     fn get_lists(&self) -> Vec<models::List>;
+    fn get_current_list(&self) -> Option<String>;
+    fn set_current_list(&self, list: &String);
 
     fn create_list(&self, title: &String, description: &String);
     fn update_list(&self, list: &models::List);
@@ -33,6 +35,19 @@ pub mod sqlite {
 
         let conn = Connection::open(&db_path).expect("Failed to open db");
         if new_database {
+            conn.execute(
+                "CREATE TABLE config (
+                id INTEGER PRIMARY KEY CHECK (id = 0),
+                current_list TEXT)",
+                NO_PARAMS,
+            )
+            .expect("Failed to create list table");
+            conn.execute(
+                "INSERT INTO config (id, current_list) VALUES (0, ?1)",
+                params!["1"],
+            )
+            .expect("Failed to set default list");
+
             conn.execute(
                 "CREATE TABLE lists (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -85,6 +100,27 @@ pub mod sqlite {
                 lists.push(l.unwrap());
             }
             return lists;
+        }
+
+        fn get_current_list(&self) -> Option<String> {
+            let result = self.conn.query_row(
+                "SELECT current_list FROM config WHERE id = 0",
+                NO_PARAMS,
+                |row| Ok(row.get(0)?),
+            );
+            match result {
+                Ok(data) => Some(data),
+                Err(_) => None,
+            }
+        }
+
+        fn set_current_list(&self, list: &String) {
+            self.conn
+                .execute(
+                    "UPDATE config SET current_list = ?1 WHERE id = 0",
+                    params![list],
+                )
+                .expect("Failed to update list");
         }
 
         fn create_list(&self, title: &String, description: &String) {
@@ -157,6 +193,16 @@ pub mod sqlite {
             }
         }
     }
+}
+
+pub fn get_current_list() -> Option<String> {
+    let db = sqlite::new();
+    return db.get_current_list();
+}
+
+pub fn set_current_list(list: &String) {
+    let db = sqlite::new();
+    return db.set_current_list(list);
 }
 
 pub fn get_lists() -> Vec<models::List> {
