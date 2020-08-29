@@ -3,6 +3,7 @@ mod config;
 mod db;
 mod input;
 mod models;
+mod utils;
 
 use std::collections::HashMap;
 use std::env;
@@ -81,6 +82,9 @@ impl Command {
                                         );
                                         self.print_help_and_exit(1);
                                     }
+                                } else {
+                                    println!("Aborting: unknown flag '{}'", a);
+                                    self.print_help_and_exit(1);
                                 }
                             } else if a.starts_with("-") {
                                 if let Some(flag) = self.flags.iter().find(|f| {
@@ -98,6 +102,9 @@ impl Command {
                                         );
                                         self.print_help_and_exit(1);
                                     }
+                                } else {
+                                    println!("Aborting: unknown flag '{}'", a);
+                                    self.print_help_and_exit(1);
                                 }
                             } else {
                                 ctx.params.push(a.to_string());
@@ -283,6 +290,83 @@ fn main() {
                         action: cmd::list::delete,
                         subcommands: vec![],
                         flags: vec![],
+                    },
+                ],
+            },
+            Command {
+                name: "item",
+                aliases: vec!["i"],
+                description: "Manage items",
+                params: CommandParams::None,
+                action: cmd::item,
+                flags: vec![Flag {
+                    name: "list",
+                    aliases: vec!["l"],
+                    description: "the list to show",
+                }],
+                subcommands: vec![
+                    Command {
+                        name: "add",
+                        aliases: vec!["a"],
+                        description: "Add a new item to the list",
+                        params: CommandParams::None,
+                        action: cmd::item::add,
+                        subcommands: vec![],
+                        flags: vec![
+                            Flag {
+                                name: "list",
+                                aliases: vec!["l"],
+                                description: "the list to add the item too",
+                            },
+                            Flag {
+                                name: "title",
+                                aliases: vec!["t"],
+                                description: "the item title",
+                            },
+                            Flag {
+                                name: "desc",
+                                aliases: vec!["d"],
+                                description: "the item description",
+                            },
+                        ],
+                    },
+                    Command {
+                        name: "edit",
+                        aliases: vec!["e"],
+                        description: "Edit an item in the list",
+                        params: CommandParams::Single("ITEM"),
+                        action: cmd::item::edit,
+                        subcommands: vec![],
+                        flags: vec![
+                            Flag {
+                                name: "list",
+                                aliases: vec!["l"],
+                                description: "the list the item is in",
+                            },
+                            Flag {
+                                name: "title",
+                                aliases: vec!["t"],
+                                description: "the item title",
+                            },
+                            Flag {
+                                name: "desc",
+                                aliases: vec!["d"],
+                                description: "the item description",
+                            },
+                        ],
+                    },
+                    Command {
+                        name: "delete",
+                        aliases: vec!["d"],
+                        description: "Delete one or more items",
+                        params: CommandParams::Multi("ITEM"),
+                        action: cmd::item::delete,
+                        subcommands: vec![],
+                        flags: vec![Flag {
+                            name: "list",
+                            aliases: vec!["l"],
+                            description: "the list the item is in",
+                        }],
                     },
                 ],
             },

@@ -32,12 +32,39 @@ pub fn list(_: &CommandCtx) {
     }
 }
 
-pub fn item(_: &CommandCtx) {
-    // TODO: show list item for selected list?
+pub fn item(ctx: &CommandCtx) {
+    let list_id: Option<String>;
+
+    if let Some(list) = ctx.data.get("list") {
+        if let Some(l) = db::find_list(list) {
+            list_id = Some(l.id.to_string());
+        } else {
+            println!("Aborting. Unknown list {}", list);
+            std::process::exit(1);
+        }
+    } else {
+        list_id = db::get_current_list();
+        if list_id.is_none() {
+            println!("Aborting. No list specified");
+            std::process::exit(1);
+        }
+    }
+
+    // TODO: check for -l argument to specify the list
+    if let Some(id) = list_id {
+        let items = db::get_items(&id);
+
+        println!("ID\tNAME\tDESCRIPTION");
+        for i in items.iter() {
+            println!("{}\t{}\t{}", i.id, i.title, i.description);
+        }
+    } else {
+        println!("No list selected");
+    }
 }
 
 pub mod list {
-    use crate::{db, input, CommandCtx};
+    use crate::{db, input, utils, CommandCtx};
 
     pub fn create(ctx: &CommandCtx) {
         let mut title: Option<String> = None;
@@ -54,7 +81,7 @@ pub mod list {
         if title == None && description == None {
             // get input from file
             let text = input::get_file_input(None);
-            if let Some(result) = split_text_into_title_desc(&text) {
+            if let Some(result) = utils::split_text_into_title_desc(&text) {
                 let (t, d) = result;
                 title = t;
                 description = d;
@@ -100,7 +127,7 @@ pub mod list {
                     // get input from file
                     let current = vec![list.title.clone(), list.description.clone()].join("\n");
                     let text = input::get_file_input(Some(&current));
-                    if let Some(result) = split_text_into_title_desc(&text) {
+                    if let Some(result) = utils::split_text_into_title_desc(&text) {
                         let (t, d) = result;
                         title = t;
                         description = d;
@@ -148,20 +175,93 @@ pub mod list {
             }
         }
     }
-
-    fn split_text_into_title_desc(text: &String) -> Option<(Option<String>, Option<String>)> {
-        let trimmed = text.trim();
-        if trimmed.len() > 0 {
-            // TODO: Handle \r\n
-            let mut iter = trimmed.splitn(2, '\n');
-            let title = iter.next().map(|s| String::from(s.trim()));
-            let description = iter.next().map(|s| String::from(s.trim()));
-
-            return Some((title, description));
-        }
-
-        return None;
-    }
 }
 
-pub mod item {}
+pub mod item {
+    use crate::{db, input, utils, CommandCtx};
+
+    pub fn add(ctx: &CommandCtx) {
+        let list_id: Option<String>;
+        let mut title: Option<String> = None;
+        let mut description: Option<String> = None;
+
+        if let Some(list) = ctx.data.get("list") {
+            if let Some(l) = db::find_list(list) {
+                list_id = Some(l.id.to_string());
+            } else {
+                println!("Aborting. Unknown list {}", list);
+                std::process::exit(1);
+            }
+        } else {
+            list_id = db::get_current_list();
+            if list_id.is_none() {
+                println!("Aborting. No list specified");
+                std::process::exit(1);
+            }
+        }
+
+        if let Some(value) = ctx.data.get("title") {
+            title = Some(String::from(value));
+        }
+
+        if let Some(value) = ctx.data.get("desc") {
+            description = Some(String::from(value));
+        }
+
+        if title == None && description == None {
+            // get input from file
+            let text = input::get_file_input(None);
+            if let Some(result) = utils::split_text_into_title_desc(&text) {
+                let (t, d) = result;
+                title = t;
+                description = d;
+            }
+        } else if title == None && description != None {
+            // get input for title from stdin
+            print!("Please enter the item title: ");
+            let text = input::get_stdin_input();
+            if text.len() > 0 {
+                title = Some(text);
+            }
+        } else if title != None && description == None {
+            // save title with empty description
+            description = Some(String::from(""));
+        }
+
+        if title == None {
+            println!("Aborting: no item title");
+            std::process::exit(1);
+        }
+
+        db::create_item(&list_id.unwrap(), &title.unwrap(), &description.unwrap());
+    }
+    pub fn edit(_: &CommandCtx) {}
+
+    pub fn delete(ctx: &CommandCtx) {
+        let list_id: String;
+
+        if let Some(list) = ctx.data.get("list") {
+            if let Some(l) = db::find_list(list) {
+                list_id = l.id.to_string();
+            } else {
+                println!("Aborting. Unknown list {}", list);
+                std::process::exit(1);
+            }
+        } else {
+            if let Some(l) = db::get_current_list() {
+                list_id = l;
+            } else {
+                println!("Aborting. No list specified");
+                std::process::exit(1);
+            }
+        }
+
+        for p in ctx.params.iter() {
+            if let Some(item) = db::find_item(&list_id, p) {
+                db::delete_item(&list_id, &item);
+            } else {
+                println!("Skipping '{}'. Not found in list '{}'!", p, list_id);
+            }
+        }
+    }
+}

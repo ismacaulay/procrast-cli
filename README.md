@@ -48,9 +48,10 @@ procrast use <list>
 ### TODO
 
 - The list title needs to be unique, but enforced at the business logic level, not the db level
-  - Or do we just handle duplicate lists?
-- Handle args in an order independent way
-- Store DB file in .config/procast under \$HOME
+- Use the db connection across the entire command instead of making a new one each function call
+- Delete all items when deleting a list
+- Update the current list to null if the current list is deleted
+- Add a way to clear the current list
 - Implement a table printer
 
 ```

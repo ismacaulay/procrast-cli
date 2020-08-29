@@ -10,6 +10,11 @@ pub trait Database {
     fn delete_list(&self, list: &models::List);
     fn find_list_by_title(&self, title: &String) -> Option<models::List>;
     fn find_list_by_id(&self, id: &String) -> Option<models::List>;
+
+    fn get_items(&self, list_id: &String) -> Vec<models::Item>;
+    fn get_item(&self, list_id: &String, item_id: &String) -> Option<models::Item>;
+    fn create_item(&self, list_id: &String, title: &String, description: &String);
+    fn delete_item(&self, list_id: &String, item: &models::Item);
 }
 
 pub mod sqlite {
@@ -192,6 +197,74 @@ pub mod sqlite {
                 Err(_) => None,
             }
         }
+
+        fn get_items(&self, list_id: &String) -> Vec<models::Item> {
+            let mut stmt = self
+                .conn
+                .prepare("SELECT id, title, description FROM items WHERE list_id = ?1")
+                .expect("Failed to prepare query");
+
+            let iter = stmt
+                .query_map(params![list_id], |row| {
+                    let desc = match row.get::<_, String>(2) {
+                        Ok(desc) => desc,
+                        _ => String::from(""),
+                    };
+                    Ok(models::Item {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        description: desc,
+                    })
+                })
+                .expect("Failed to perform query_map");
+
+            let mut items = Vec::new();
+            for v in iter {
+                items.push(v.unwrap());
+            }
+            return items;
+        }
+
+        fn get_item(&self, list_id: &String, item_id: &String) -> Option<models::Item> {
+            let result = self.conn.query_row(
+                "SELECT id, title, description FROM items WHERE list_id = (?1) AND id = (?2)",
+                params![list_id, item_id],
+                |row| {
+                    let desc = match row.get::<_, String>(2) {
+                        Ok(desc) => desc,
+                        _ => String::from(""),
+                    };
+                    Ok(models::Item {
+                        id: row.get(0)?,
+                        title: row.get(1)?,
+                        description: desc,
+                    })
+                },
+            );
+
+            match result {
+                Ok(data) => Some(data),
+                Err(_) => None,
+            }
+        }
+
+        fn create_item(&self, list_id: &String, title: &String, description: &String) {
+            self.conn
+                .execute(
+                    "INSERT INTO items (title, description, list_id) VALUES (?1, ?2, ?3)",
+                    params![title, description, list_id],
+                )
+                .expect("Failed to create item");
+        }
+
+        fn delete_item(&self, list_id: &String, item: &models::Item) {
+            self.conn
+                .execute(
+                    "DELETE FROM items WHERE list_id = ?1 AND id = ?2",
+                    params![list_id, item.id],
+                )
+                .expect("Failed to delete item");
+        }
     }
 }
 
@@ -242,4 +315,29 @@ pub fn find_list_by_title(title: &String) -> Option<models::List> {
 pub fn find_list_by_id(id: &String) -> Option<models::List> {
     let db = sqlite::new();
     return db.find_list_by_id(id);
+}
+
+pub fn get_items(list_id: &String) -> Vec<models::Item> {
+    let db = sqlite::new();
+    return db.get_items(list_id);
+}
+
+pub fn create_item(list_id: &String, title: &String, description: &String) {
+    let db = sqlite::new();
+    db.create_item(list_id, title, description);
+}
+
+pub fn update_item(item: &models::Item) {
+    // let db = sqlite::new();
+    // db.update_list(list);
+}
+
+pub fn delete_item(list_id: &String, item: &models::Item) {
+    let db = sqlite::new();
+    db.delete_item(list_id, item);
+}
+
+pub fn find_item(list_id: &String, id: &String) -> Option<models::Item> {
+    let db = sqlite::new();
+    return db.get_item(list_id, id);
 }
