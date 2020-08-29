@@ -14,6 +14,7 @@ pub trait Database {
     fn get_items(&self, list_id: &String) -> Vec<models::Item>;
     fn get_item(&self, list_id: &String, item_id: &String) -> Option<models::Item>;
     fn create_item(&self, list_id: &String, title: &String, description: &String);
+    fn update_item(&self, list_id: &String, item: &models::Item);
     fn delete_item(&self, list_id: &String, item: &models::Item);
 }
 
@@ -257,6 +258,15 @@ pub mod sqlite {
                 .expect("Failed to create item");
         }
 
+        fn update_item(&self, list_id: &String, item: &models::Item) {
+            self.conn
+                .execute(
+                    "UPDATE items SET title = ?3, description = ?4 WHERE list_id = ?1 AND id = ?2",
+                    params![list_id, item.id, item.title, item.description],
+                )
+                .expect("Failed to update list");
+        }
+
         fn delete_item(&self, list_id: &String, item: &models::Item) {
             self.conn
                 .execute(
@@ -327,9 +337,9 @@ pub fn create_item(list_id: &String, title: &String, description: &String) {
     db.create_item(list_id, title, description);
 }
 
-pub fn update_item(item: &models::Item) {
-    // let db = sqlite::new();
-    // db.update_list(list);
+pub fn update_item(list_id: &String, item: &models::Item) {
+    let db = sqlite::new();
+    db.update_item(list_id, item);
 }
 
 pub fn delete_item(list_id: &String, item: &models::Item) {

@@ -235,7 +235,70 @@ pub mod item {
 
         db::create_item(&list_id.unwrap(), &title.unwrap(), &description.unwrap());
     }
-    pub fn edit(_: &CommandCtx) {}
+
+    pub fn edit(ctx: &CommandCtx) {
+        if ctx.params.len() == 0 {
+            println!("Aborting: no item specified");
+            std::process::exit(1);
+        } else if ctx.params.len() == 1 {
+            let list_id: String;
+
+            if let Some(list) = ctx.data.get("list") {
+                if let Some(l) = db::find_list(list) {
+                    list_id = l.id.to_string();
+                } else {
+                    println!("Aborting. Unknown list {}", list);
+                    std::process::exit(1);
+                }
+            } else {
+                if let Some(l) = db::get_current_list() {
+                    list_id = l;
+                } else {
+                    println!("Aborting. No list specified");
+                    std::process::exit(1);
+                }
+            }
+
+            let item_id = &ctx.params[0];
+            if let Some(item) = db::find_item(&list_id, item_id).as_mut() {
+                let mut title: Option<String> = None;
+                let mut description: Option<String> = None;
+
+                if let Some(value) = ctx.data.get("title") {
+                    title = Some(String::from(value));
+                }
+
+                if let Some(value) = ctx.data.get("desc") {
+                    description = Some(String::from(value));
+                }
+
+                if title == None && description == None {
+                    // get input from file
+                    let current = vec![item.title.clone(), item.description.clone()].join("\n");
+                    let text = input::get_file_input(Some(&current));
+                    if let Some(result) = utils::split_text_into_title_desc(&text) {
+                        let (t, d) = result;
+                        title = t;
+                        description = d;
+                    }
+                }
+
+                if title.is_some() || description.is_some() {
+                    if let Some(t) = title {
+                        item.title = t;
+                    }
+
+                    if let Some(d) = description {
+                        item.description = d;
+                    }
+
+                    db::update_item(&list_id, item);
+                }
+            } else {
+                println!("Aborting: Could not find item '{}'", list_id)
+            }
+        }
+    }
 
     pub fn delete(ctx: &CommandCtx) {
         let list_id: String;

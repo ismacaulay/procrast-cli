@@ -52,6 +52,7 @@ procrast use <list>
 - Delete all items when deleting a list
 - Update the current list to null if the current list is deleted
 - Add a way to clear the current list
+- Allow command aliases to be specified without spaces (ie. lc == list create)
 - Implement a table printer
 
 ```
