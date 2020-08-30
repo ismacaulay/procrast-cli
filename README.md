@@ -1,3 +1,12 @@
+## procrast-cli
+
+A cli for managing your procrastination.
+
+### Why
+
+procrast is basically a simple todo application. The main reason is that it gives a small and clear set of requirements which is good for learning a new languages (rust and go).
+This is part of a larger system to learn about cli, api, and everything to do with managing and deploying a microservice based system.
+
 ### Commands
 
 #### item management
@@ -59,8 +68,11 @@ table.add_row(["foo", "bar", "baz"]) // OK
 table.add_row(["f", "b"]); // OK, empty string for last col
 table.add_row(["a", "b", "c", "d"]); // Err, to many cols
 
-table.print(std::out);
+table.print();
 ```
+
+- api integration and sync
+- configuration to specify db locations and api endpoint for dev vs prod
 
 ### ideas
 
