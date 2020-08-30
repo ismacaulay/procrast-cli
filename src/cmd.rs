@@ -162,6 +162,11 @@ pub mod list {
                     print!("Enter ther name of the list to confirm: ");
                     let result = input::get_stdin_input();
                     if result == list.title {
+                        let list_id = list.id.to_string();
+                        for item in db::get_items(&list_id) {
+                            db::delete_item(&list_id, &item);
+                        }
+
                         db::delete_list(&list);
                     } else {
                         println!(

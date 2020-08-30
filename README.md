@@ -49,7 +49,6 @@ procrast use <list>
 
 - The list title needs to be unique, but enforced at the business logic level, not the db level
 - Use the db connection across the entire command instead of making a new one each function call
-- Delete all items when deleting a list
 - Update the current list to null if the current list is deleted
 - Add a way to clear the current list
 - Allow command aliases to be specified without spaces (ie. lc == list create)
