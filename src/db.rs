@@ -8,6 +8,7 @@ pub trait Database {
     fn create_list(&self, title: &String, description: &String);
     fn update_list(&self, list: &models::List);
     fn delete_list(&self, list: &models::List);
+    fn find_list(&self, title_or_id: &String) -> Option<models::List>;
     fn find_list_by_title(&self, title: &String) -> Option<models::List>;
     fn find_list_by_id(&self, id: &String) -> Option<models::List>;
 
@@ -115,7 +116,13 @@ pub mod sqlite {
                 |row| Ok(row.get(0)?),
             );
             match result {
-                Ok(data) => Some(data),
+                Ok(data) => {
+                    if data == "" {
+                        None
+                    } else {
+                        Some(data)
+                    }
+                }
                 Err(_) => None,
             }
         }
@@ -151,6 +158,15 @@ pub mod sqlite {
             self.conn
                 .execute("DELETE FROM lists WHERE id = ?1", params![list.id])
                 .expect("Failed to delete list");
+        }
+
+        fn find_list(&self, title_or_id: &String) -> Option<models::List> {
+            let list = self.find_list_by_title(title_or_id);
+            if list.is_some() {
+                return list;
+            }
+
+            return self.find_list_by_id(title_or_id);
         }
 
         fn find_list_by_title(&self, title: &String) -> Option<models::List> {
@@ -276,78 +292,4 @@ pub mod sqlite {
                 .expect("Failed to delete item");
         }
     }
-}
-
-pub fn get_current_list() -> Option<String> {
-    let db = sqlite::new();
-    return db.get_current_list();
-}
-
-pub fn set_current_list(list: &String) {
-    let db = sqlite::new();
-    return db.set_current_list(list);
-}
-
-pub fn get_lists() -> Vec<models::List> {
-    let db = sqlite::new();
-    return db.get_lists();
-}
-
-pub fn create_list(title: &String, description: &String) {
-    let db = sqlite::new();
-    db.create_list(title, description);
-}
-
-pub fn update_list(list: &models::List) {
-    let db = sqlite::new();
-    db.update_list(list);
-}
-
-pub fn delete_list(list: &models::List) {
-    let db = sqlite::new();
-    db.delete_list(list);
-}
-
-pub fn find_list(title_or_id: &String) -> Option<models::List> {
-    let list = find_list_by_title(title_or_id);
-    if list.is_some() {
-        return list;
-    }
-
-    return find_list_by_id(title_or_id);
-}
-
-pub fn find_list_by_title(title: &String) -> Option<models::List> {
-    let db = sqlite::new();
-    return db.find_list_by_title(title);
-}
-
-pub fn find_list_by_id(id: &String) -> Option<models::List> {
-    let db = sqlite::new();
-    return db.find_list_by_id(id);
-}
-
-pub fn get_items(list_id: &String) -> Vec<models::Item> {
-    let db = sqlite::new();
-    return db.get_items(list_id);
-}
-
-pub fn create_item(list_id: &String, title: &String, description: &String) {
-    let db = sqlite::new();
-    db.create_item(list_id, title, description);
-}
-
-pub fn update_item(list_id: &String, item: &models::Item) {
-    let db = sqlite::new();
-    db.update_item(list_id, item);
-}
-
-pub fn delete_item(list_id: &String, item: &models::Item) {
-    let db = sqlite::new();
-    db.delete_item(list_id, item);
-}
-
-pub fn find_item(list_id: &String, id: &String) -> Option<models::Item> {
-    let db = sqlite::new();
-    return db.get_item(list_id, id);
 }

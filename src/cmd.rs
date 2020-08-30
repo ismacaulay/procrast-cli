@@ -1,21 +1,21 @@
-use crate::{db, CommandCtx};
+use crate::{db::Database, Context};
 
-pub fn use_list(ctx: &CommandCtx) {
+pub fn use_list(ctx: &Context) {
     if ctx.params.len() != 0 {
         let list_id = &ctx.params[0];
-        if let Some(list) = db::find_list(list_id) {
-            db::set_current_list(&list.id.to_string());
+        if let Some(list) = ctx.db.find_list(list_id) {
+            ctx.db.set_current_list(&list.id.to_string());
         } else {
             println!("Aborting: Could not find list '{}'", list_id)
         }
     }
 }
 
-pub fn list(_: &CommandCtx) {
-    let lists = db::get_lists();
+pub fn list(ctx: &Context) {
+    let lists = ctx.db.get_lists();
 
     // TODO: eventually current will be a uuid instead of i32
-    let current: i32 = match db::get_current_list() {
+    let current: i32 = match ctx.db.get_current_list() {
         Some(c) => c.parse::<i32>().unwrap(),
         None => -1,
     };
@@ -32,18 +32,18 @@ pub fn list(_: &CommandCtx) {
     }
 }
 
-pub fn item(ctx: &CommandCtx) {
+pub fn item(ctx: &Context) {
     let list_id: Option<String>;
 
     if let Some(list) = ctx.data.get("list") {
-        if let Some(l) = db::find_list(list) {
+        if let Some(l) = ctx.db.find_list(list) {
             list_id = Some(l.id.to_string());
         } else {
             println!("Aborting. Unknown list {}", list);
             std::process::exit(1);
         }
     } else {
-        list_id = db::get_current_list();
+        list_id = ctx.db.get_current_list();
         if list_id.is_none() {
             println!("Aborting. No list specified");
             std::process::exit(1);
@@ -52,7 +52,7 @@ pub fn item(ctx: &CommandCtx) {
 
     // TODO: check for -l argument to specify the list
     if let Some(id) = list_id {
-        let items = db::get_items(&id);
+        let items = ctx.db.get_items(&id);
 
         println!("ID\tNAME\tDESCRIPTION");
         for i in items.iter() {
@@ -64,9 +64,9 @@ pub fn item(ctx: &CommandCtx) {
 }
 
 pub mod list {
-    use crate::{db, input, utils, CommandCtx};
+    use crate::{db::Database, input, utils, Context};
 
-    pub fn create(ctx: &CommandCtx) {
+    pub fn create(ctx: &Context) {
         let mut title: Option<String> = None;
         let mut description: Option<String> = None;
 
@@ -103,15 +103,15 @@ pub mod list {
             std::process::exit(1);
         }
 
-        db::create_list(&title.unwrap(), &description.unwrap());
+        ctx.db.create_list(&title.unwrap(), &description.unwrap());
     }
 
-    pub fn edit(ctx: &CommandCtx) {
+    pub fn edit(ctx: &Context) {
         if ctx.params.len() == 0 {
             // TODO: use current list and show editor
         } else if ctx.params.len() == 1 {
             let list_id = &ctx.params[0];
-            if let Some(list) = db::find_list(list_id).as_mut() {
+            if let Some(list) = ctx.db.find_list(list_id).as_mut() {
                 let mut title: Option<String> = None;
                 let mut description: Option<String> = None;
 
@@ -143,7 +143,7 @@ pub mod list {
                         list.description = d;
                     }
 
-                    db::update_list(list);
+                    ctx.db.update_list(list);
                 }
             } else {
                 println!("Aborting: Could not find list '{}'", list_id)
@@ -151,23 +151,29 @@ pub mod list {
         }
     }
 
-    pub fn delete(ctx: &CommandCtx) {
+    pub fn delete(ctx: &Context) {
         if ctx.params.len() == 0 {
             // TODO: use current list
         } else {
             for p in ctx.params.iter() {
-                if let Some(list) = db::find_list(p) {
+                if let Some(list) = ctx.db.find_list(p) {
                     println!("Are you sure you want to delete list '{}'?", list.title);
                     println!("This cannot be undone!");
                     print!("Enter ther name of the list to confirm: ");
                     let result = input::get_stdin_input();
                     if result == list.title {
                         let list_id = list.id.to_string();
-                        for item in db::get_items(&list_id) {
-                            db::delete_item(&list_id, &item);
+                        for item in ctx.db.get_items(&list_id) {
+                            ctx.db.delete_item(&list_id, &item);
                         }
 
-                        db::delete_list(&list);
+                        if let Some(current) = ctx.db.get_current_list() {
+                            if list_id == current {
+                                ctx.db.set_current_list(&String::new());
+                            }
+                        }
+
+                        ctx.db.delete_list(&list);
                     } else {
                         println!(
                             "Skipping '{}'. Entered title does not match {}",
@@ -183,22 +189,22 @@ pub mod list {
 }
 
 pub mod item {
-    use crate::{db, input, utils, CommandCtx};
+    use crate::{db::Database, input, utils, Context};
 
-    pub fn add(ctx: &CommandCtx) {
+    pub fn add(ctx: &Context) {
         let list_id: Option<String>;
         let mut title: Option<String> = None;
         let mut description: Option<String> = None;
 
         if let Some(list) = ctx.data.get("list") {
-            if let Some(l) = db::find_list(list) {
+            if let Some(l) = ctx.db.find_list(list) {
                 list_id = Some(l.id.to_string());
             } else {
                 println!("Aborting. Unknown list {}", list);
                 std::process::exit(1);
             }
         } else {
-            list_id = db::get_current_list();
+            list_id = ctx.db.get_current_list();
             if list_id.is_none() {
                 println!("Aborting. No list specified");
                 std::process::exit(1);
@@ -238,10 +244,11 @@ pub mod item {
             std::process::exit(1);
         }
 
-        db::create_item(&list_id.unwrap(), &title.unwrap(), &description.unwrap());
+        ctx.db
+            .create_item(&list_id.unwrap(), &title.unwrap(), &description.unwrap());
     }
 
-    pub fn edit(ctx: &CommandCtx) {
+    pub fn edit(ctx: &Context) {
         if ctx.params.len() == 0 {
             println!("Aborting: no item specified");
             std::process::exit(1);
@@ -249,14 +256,14 @@ pub mod item {
             let list_id: String;
 
             if let Some(list) = ctx.data.get("list") {
-                if let Some(l) = db::find_list(list) {
+                if let Some(l) = ctx.db.find_list(list) {
                     list_id = l.id.to_string();
                 } else {
                     println!("Aborting. Unknown list {}", list);
                     std::process::exit(1);
                 }
             } else {
-                if let Some(l) = db::get_current_list() {
+                if let Some(l) = ctx.db.get_current_list() {
                     list_id = l;
                 } else {
                     println!("Aborting. No list specified");
@@ -265,7 +272,7 @@ pub mod item {
             }
 
             let item_id = &ctx.params[0];
-            if let Some(item) = db::find_item(&list_id, item_id).as_mut() {
+            if let Some(item) = ctx.db.get_item(&list_id, item_id).as_mut() {
                 let mut title: Option<String> = None;
                 let mut description: Option<String> = None;
 
@@ -297,7 +304,7 @@ pub mod item {
                         item.description = d;
                     }
 
-                    db::update_item(&list_id, item);
+                    ctx.db.update_item(&list_id, item);
                 }
             } else {
                 println!("Aborting: Could not find item '{}'", list_id)
@@ -305,18 +312,18 @@ pub mod item {
         }
     }
 
-    pub fn delete(ctx: &CommandCtx) {
+    pub fn delete(ctx: &Context) {
         let list_id: String;
 
         if let Some(list) = ctx.data.get("list") {
-            if let Some(l) = db::find_list(list) {
+            if let Some(l) = ctx.db.find_list(list) {
                 list_id = l.id.to_string();
             } else {
                 println!("Aborting. Unknown list {}", list);
                 std::process::exit(1);
             }
         } else {
-            if let Some(l) = db::get_current_list() {
+            if let Some(l) = ctx.db.get_current_list() {
                 list_id = l;
             } else {
                 println!("Aborting. No list specified");
@@ -325,8 +332,8 @@ pub mod item {
         }
 
         for p in ctx.params.iter() {
-            if let Some(item) = db::find_item(&list_id, p) {
-                db::delete_item(&list_id, &item);
+            if let Some(item) = ctx.db.get_item(&list_id, p) {
+                ctx.db.delete_item(&list_id, &item);
             } else {
                 println!("Skipping '{}'. Not found in list '{}'!", p, list_id);
             }

@@ -21,15 +21,16 @@ struct Flag {
     description: &'static str,
 }
 
-pub struct CommandCtx {
-    // TODO rename data to options
+pub struct Context {
+    db: db::sqlite::SQLiteDatabase,
     data: HashMap<&'static str, String>,
     params: Vec<String>,
 }
 
-impl CommandCtx {
-    fn new() -> CommandCtx {
-        CommandCtx {
+impl Context {
+    fn new() -> Context {
+        Context {
+            db: db::sqlite::new(),
             data: HashMap::new(),
             params: Vec::new(),
         }
@@ -41,15 +42,14 @@ struct Command {
     aliases: Vec<&'static str>,
     description: &'static str,
     params: CommandParams,
-    action: fn(ctx: &CommandCtx),
+    action: fn(ctx: &Context),
     subcommands: Vec<Command>,
     flags: Vec<Flag>,
 }
 
 impl Command {
-    fn run(&self, args: &[String]) {
+    fn run(&self, ctx: &mut Context, args: &[String]) {
         if args.len() == 0 {
-            let ctx = CommandCtx::new();
             (self.action)(&ctx);
         } else {
             let cmd = args[0].as_str();
@@ -61,9 +61,8 @@ impl Command {
                         .iter()
                         .find(|c| c.name == cmd || c.aliases.iter().find(|a| **a == cmd) != None)
                     {
-                        command.run(&args[1..]);
+                        command.run(ctx, &args[1..]);
                     } else {
-                        let mut ctx = CommandCtx::new();
                         let mut arg_iter = args.iter();
 
                         while let Some(a) = arg_iter.next() {
@@ -175,7 +174,7 @@ struct Cli {
 }
 
 impl Cli {
-    fn run(&self, args: &[String]) {
+    fn run(&self, ctx: &mut Context, args: &[String]) {
         if args.len() == 0 {
             self.print_help_and_exit(1);
         }
@@ -189,7 +188,7 @@ impl Cli {
                     .iter()
                     .find(|c| c.name == cmd || c.aliases.iter().find(|a| **a == cmd) != None)
                 {
-                    command.run(&args[1..]);
+                    command.run(ctx, &args[1..]);
                 } else {
                     self.print_help_and_exit(1);
                 }
@@ -373,6 +372,7 @@ fn main() {
         ],
     };
 
+    let mut ctx = Context::new();
     let args: Vec<String> = env::args().collect();
-    app.run(&args[1..]);
+    app.run(&mut ctx, &args[1..]);
 }
