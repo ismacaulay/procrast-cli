@@ -1,6 +1,8 @@
+#[cfg(production)]
 use directories::ProjectDirs;
 use std::{fs, path::PathBuf};
 
+#[cfg(production)]
 pub fn get_data_dir() -> Option<PathBuf> {
     if let Some(proj_dirs) = ProjectDirs::from("com", "ismacaul", "procrast") {
         if !proj_dirs.data_dir().exists() {
@@ -11,6 +13,19 @@ pub fn get_data_dir() -> Option<PathBuf> {
     return None;
 }
 
+#[cfg(not(production))]
+pub fn get_data_dir() -> Option<PathBuf> {
+    let mut local_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+    local_dir.push(".local");
+
+    if !local_dir.exists() {
+        fs::create_dir_all(&local_dir).expect("Failed to create data dir");
+    }
+
+    return Some(local_dir);
+}
+
+// #[cfg(production)]
 // pub fn get_config_dir() -> Option<PathBuf> {
 //     if let Some(proj_dirs) = ProjectDirs::from("com", "ismacaul", "procrast") {
 //         if !proj_dirs.config_dir().exists() {
@@ -19,6 +34,18 @@ pub fn get_data_dir() -> Option<PathBuf> {
 //         return Some(proj_dirs.config_dir().to_path_buf());
 //     }
 //     return None;
+// }
+//
+// #[cfg(not(production))]
+// pub fn get_config_dir() -> Option<PathBuf> {
+//     let mut local_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+//     local_dir.push(".local");
+//
+//     if !local_dir.exists() {
+//         fs::create_dir_all(&local_dir).expect("Failed to create data dir");
+//     }
+//
+//     return Some(local_dir);
 // }
 //
 // // TODO: Probably should version the config
