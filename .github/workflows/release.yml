@@ -28,7 +28,7 @@ jobs:
           RUSTFLAGS="--cfg production" cargo build --release --target ${{ matrix.target }}
           tar czvf $PROJECT-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/$PROJECT README.md LICENSE.md
       - name: Create Release
-        if: matrix.os == ubuntu-latest
+        if: matrix.os == 'ubuntu-latest'
         id: create_release
         uses: actions/create-release@v1
         env:
