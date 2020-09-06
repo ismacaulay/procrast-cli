@@ -154,7 +154,12 @@ pub mod list {
 
                 if title == None && description == None {
                     // get input from file
-                    let current = vec![list.title.clone(), list.description.clone()].join("\n");
+                    let current = vec![
+                        list.title.clone(),
+                        String::from(""),
+                        list.description.clone(),
+                    ]
+                    .join("\n");
                     let text = input::get_file_input(Some(&current));
                     if let Some(result) = utils::split_text_into_title_desc(&text) {
                         let (t, d) = result;
@@ -349,7 +354,12 @@ pub mod item {
 
                 if title == None && description == None {
                     // get input from file
-                    let current = vec![item.title.clone(), item.description.clone()].join("\n");
+                    let current = vec![
+                        item.title.clone(),
+                        String::from(""),
+                        item.description.clone(),
+                    ]
+                    .join("\n");
                     let text = input::get_file_input(Some(&current));
                     if let Some(result) = utils::split_text_into_title_desc(&text) {
                         let (t, d) = result;
