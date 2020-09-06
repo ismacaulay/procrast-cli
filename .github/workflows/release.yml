@@ -29,7 +29,9 @@ jobs:
       - name: Build and package
         run: |
           RUSTFLAGS="--cfg production" cargo build --release --target ${{ matrix.target }}
-          tar czvf ${{ env.PROJECT }}-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/${{ env.PROJECT }} README.md LICENSE.md
+          mkdir -p ${{ env.PROJECT }}-${{ matrix.target }}
+          cp README.md LICENSE.md ./target/${{ matrix.target }}/release/${{ env.PROJECT }} ${{ env.PROJECT }}-${{ matrix.target }}/
+          tar czvf ${{ env.PROJECT }}-${{ matrix.target }}.tar.gz ${{ env.PROJECT }}-${{ matrix.target }}
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
