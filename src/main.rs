@@ -6,6 +6,9 @@ mod models;
 mod output;
 mod utils;
 
+// TODO: look into the built package
+const VERSION: &'static str = env!("CARGO_PKG_VERSION");
+
 use std::collections::HashMap;
 use std::env;
 
@@ -182,6 +185,10 @@ impl Cli {
 
         let cmd = args[0].as_str();
         match cmd {
+            "version" | "--version" => {
+                println!("procrast-cli version {}", VERSION);
+                std::process::exit(0);
+            }
             "help" | "--help" | "-h" => self.print_help_and_exit(0),
             _ => {
                 if let Some(command) = self
