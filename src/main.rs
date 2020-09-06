@@ -340,6 +340,15 @@ fn main() {
                         ],
                     },
                     Command {
+                        name: "show",
+                        aliases: vec!["s"],
+                        description: "Show an item",
+                        params: CommandParams::Single("ITEM"),
+                        action: cmd::item::show,
+                        subcommands: vec![],
+                        flags: vec![],
+                    },
+                    Command {
                         name: "edit",
                         aliases: vec!["e"],
                         description: "Edit an item in the list",

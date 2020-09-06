@@ -58,10 +58,13 @@ pub fn item(ctx: &Context) {
     if let Some(id) = list_id {
         let items = ctx.db.get_items(&id);
 
-        println!("ID\tNAME\tDESCRIPTION");
+        let mut printer = TablePrinter::new(vec!["ID".to_string(), "TITLE".to_string()]);
         for i in items.iter() {
-            println!("{}\t{}\t{}", i.id, i.title, i.description);
+            printer
+                .add_row(vec![i.id.to_string(), i.title.clone()])
+                .expect("Failed to add row to printer");
         }
+        printer.print();
     } else {
         println!("No list selected");
     }
@@ -272,6 +275,40 @@ pub mod item {
 
         ctx.db
             .create_item(&list_id.unwrap(), &title.unwrap(), &description.unwrap());
+    }
+
+    pub fn show(ctx: &Context) {
+        if ctx.params.len() == 0 {
+            println!("Aborting: no item specified");
+            std::process::exit(1);
+        } else if ctx.params.len() == 1 {
+            let list_id: String;
+
+            if let Some(list) = ctx.data.get("list") {
+                if let Some(l) = ctx.db.find_list(list) {
+                    list_id = l.id.to_string();
+                } else {
+                    println!("Aborting. Unknown list {}", list);
+                    std::process::exit(1);
+                }
+            } else {
+                if let Some(l) = ctx.db.get_current_list() {
+                    list_id = l;
+                } else {
+                    println!("Aborting. No list specified");
+                    std::process::exit(1);
+                }
+            }
+
+            let item_id = &ctx.params[0];
+            if let Some(item) = ctx.db.get_item(&list_id, item_id).as_mut() {
+                println!("{}: {}", item.id, item.title);
+
+                if item.description.len() > 0 {
+                    println!("\n{}\n", item.description);
+                }
+            }
+        }
     }
 
     pub fn edit(ctx: &Context) {
