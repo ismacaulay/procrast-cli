@@ -16,7 +16,7 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
-    name: Upload Release Asset
+    name: Release
     runs-on: ${{ matrix.os }}
     env:
       PROJECT: procrast-cli
@@ -28,6 +28,7 @@ jobs:
           RUSTFLAGS="--cfg production" cargo build --release --target ${{ matrix.target }}
           tar czvf $PROJECT-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/$PROJECT README.md LICENSE.md
       - name: Create Release
+        if: matrix.os == ubuntu-latest
         id: create_release
         uses: actions/create-release@v1
         env:
