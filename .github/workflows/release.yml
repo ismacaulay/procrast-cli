@@ -6,6 +6,11 @@ on:
 
 name: Upload Release Asset
 
+env:
+  PROJECT: actions-adventures
+  LINUX_TARGET: x86_64-unknown-linux-gnu
+  MACOS_TARGET: x86_64-apple-darwin
+
 jobs:
   build:
     strategy:
@@ -16,19 +21,27 @@ jobs:
             target: x86_64-unknown-linux-gnu
           - os: macos-latest
             target: x86_64-apple-darwin
-    name: Release
+    name: Build artifact
     runs-on: ${{ matrix.os }}
-    env:
-      PROJECT: procrast-cli
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
       - name: Build and package
         run: |
           RUSTFLAGS="--cfg production" cargo build --release --target ${{ matrix.target }}
-          tar czvf $PROJECT-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/$PROJECT README.md LICENSE.md
+          tar czvf ${{ env.PROJECT }}-${{ matrix.target }}.tar.gz ./target/${{ matrix.target }}/release/${{ env.PROJECT }} README.md LICENSE.md
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{ env.PROJECT }}-${{matrix.target}}
+          path: ${{ env.PROJECT }}-${{matrix.target}}.tar.gz
+  release:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v2
       - name: Create Release
-        if: matrix.os == 'ubuntu-latest'
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -38,13 +51,21 @@ jobs:
           release_name: ${{ github.ref }}
           draft: false
           prerelease: false
-      - name: Upload Release Asset
-        id: upload-release-asset
+      - name: Upload linux
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps
-          asset_path: ./${{env.PROJECT}}-${{ matrix.target }}.tar.gz
-          asset_name: ${{env.PROJECT}}-${{ matrix.target }}.tar.gz
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.PROJECT }}-${{ env.LINUX_TARGET }}/${{ env.PROJECT }}-${{ env.LINUX_TARGET }}.tar.gz
+          asset_name: ${{ env.PROJECT }}-${{ env.LINUX_TARGET }}.tar.gz
+          asset_content_type: application/gzip
+      - name: Upload macos
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ env.PROJECT }}-${{ env.MACOS_TARGET }}/${{ env.PROJECT }}-${{ env.MACOS_TARGET }}.tar.gz
+          asset_name: ${{ env.PROJECT }}-${{ env.MACOS_TARGET }}.tar.gz
           asset_content_type: application/gzip
