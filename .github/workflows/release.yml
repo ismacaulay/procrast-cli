@@ -8,11 +8,20 @@ name: Upload Release Asset
 
 jobs:
   build:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            env:
+              TARGET: x86_64-unknown-linux-gnu
+          - os: macos-latest
+            env:
+              TARGET: x86_64-apple-darwin
     name: Upload Release Asset
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     env:
       PROJECT: procrast-cli
-      TARGET: x86_64-unknown-linux-gnu
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
