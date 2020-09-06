@@ -1,4 +1,4 @@
-use crate::{db::Database, Context};
+use crate::{db::Database, output::TablePrinter, Context};
 
 pub fn use_list(ctx: &Context) {
     if ctx.params.len() != 0 {
@@ -20,16 +20,20 @@ pub fn list(ctx: &Context) {
         None => -1,
     };
 
-    println!("ID\tNAME\tDESCRIPTION");
+    let mut printer = TablePrinter::new(vec!["ID".to_string(), "TITLE".to_string()]);
     for l in lists.iter() {
-        println!(
-            "{}{}\t{}\t{}",
-            l.id,
-            if l.id == current { "*" } else { "" },
-            l.title,
-            l.description
-        );
+        printer
+            .add_row(vec![
+                format!(
+                    "{}{}",
+                    l.id.to_string(),
+                    if l.id == current { "*" } else { "" }
+                ),
+                l.title.clone(),
+            ])
+            .expect("Failed to add row to printer");
     }
+    printer.print();
 }
 
 pub fn item(ctx: &Context) {
@@ -104,6 +108,28 @@ pub mod list {
         }
 
         ctx.db.create_list(&title.unwrap(), &description.unwrap());
+    }
+
+    pub fn show(ctx: &Context) {
+        let list_id: String;
+        if ctx.params.len() == 0 {
+            if let Some(id) = ctx.db.get_current_list() {
+                list_id = id;
+            } else {
+                println!("Aborting. No list specified");
+                std::process::exit(1);
+            }
+        } else {
+            list_id = ctx.params[0].clone();
+        }
+
+        if let Some(list) = ctx.db.find_list(&list_id) {
+            println!("{}: {}", list.id, list.title);
+
+            if list.description.len() > 0 {
+                println!("\n{}\n", list.description);
+            }
+        }
     }
 
     pub fn edit(ctx: &Context) {

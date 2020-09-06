@@ -3,6 +3,7 @@ mod config;
 mod db;
 mod input;
 mod models;
+mod output;
 mod utils;
 
 use std::collections::HashMap;
@@ -260,6 +261,15 @@ fn main() {
                                 description: "the list description",
                             },
                         ],
+                    },
+                    Command {
+                        name: "show",
+                        aliases: vec!["s"],
+                        description: "Show a list",
+                        params: CommandParams::Single("LIST"),
+                        action: cmd::list::show,
+                        subcommands: vec![],
+                        flags: vec![],
                     },
                     Command {
                         name: "edit",
