@@ -18,11 +18,40 @@ enum CommandParams {
     Multi(&'static str),
 }
 
-struct Flag {
+#[derive(Copy, Clone)]
+struct FlagDescription {
     name: &'static str,
-    // TODO: change aliases to short
-    aliases: Vec<&'static str>,
+    short: &'static str,
     description: &'static str,
+}
+
+#[derive(Copy, Clone)]
+enum Flag {
+    Flag(FlagDescription),
+    Switch(FlagDescription),
+}
+
+impl Flag {
+    fn name(self) -> &'static str {
+        match self {
+            Flag::Flag(desc) => desc.name,
+            Flag::Switch(desc) => desc.name,
+        }
+    }
+
+    fn short(self) -> &'static str {
+        match self {
+            Flag::Flag(desc) => desc.short,
+            Flag::Switch(desc) => desc.short,
+        }
+    }
+
+    fn description(self) -> &'static str {
+        match self {
+            Flag::Flag(desc) => desc.description,
+            Flag::Switch(desc) => desc.description,
+        }
+    }
 }
 
 pub struct Context {
@@ -74,43 +103,72 @@ impl Command {
                                 if let Some(flag) = self
                                     .flags
                                     .iter()
-                                    .find(|f| f.name == a.strip_prefix("--").unwrap())
+                                    .find(|f| f.name() == a.strip_prefix("--").unwrap())
                                 {
-                                    if let Some(v) = arg_iter.next() {
-                                        ctx.data.insert(flag.name, v.to_string());
-                                    } else {
-                                        println!(
-                                            "Aborting: flag '{}' is missing the value",
-                                            flag.name
-                                        );
-                                        self.print_help_and_exit(1);
+                                    match flag {
+                                        Flag::Flag(desc) => {
+                                            if let Some(v) = arg_iter.next() {
+                                                ctx.data.insert(desc.name, v.to_string());
+                                            } else {
+                                                println!(
+                                                    "Aborting: flag '{}' is missing the value",
+                                                    desc.name
+                                                );
+                                                self.print_help_and_exit(1);
+                                            }
+                                        }
+                                        Flag::Switch(desc) => {
+                                            ctx.data.insert(desc.name, String::new());
+                                        }
                                     }
                                 } else {
                                     println!("Aborting: unknown flag '{}'", a);
                                     self.print_help_and_exit(1);
                                 }
                             } else if a.starts_with("-") {
-                                if let Some(flag) = self.flags.iter().find(|f| {
-                                    f.aliases
-                                        .iter()
-                                        .find(|fa| **fa == a.strip_prefix("-").unwrap())
-                                        != None
-                                }) {
-                                    if let Some(v) = arg_iter.next() {
-                                        ctx.data.insert(flag.name, v.to_string());
-                                    } else {
-                                        println!(
-                                            "Aborting: flag '{}' is missing the value",
-                                            flag.name
-                                        );
-                                        self.print_help_and_exit(1);
+                                if let Some(flag) = self
+                                    .flags
+                                    .iter()
+                                    .find(|f| f.short() == a.strip_prefix("-").unwrap())
+                                {
+                                    match flag {
+                                        Flag::Flag(desc) => {
+                                            if let Some(v) = arg_iter.next() {
+                                                ctx.data.insert(desc.name, v.to_string());
+                                            } else {
+                                                println!(
+                                                    "Aborting: flag '{}' is missing the value",
+                                                    desc.name
+                                                );
+                                                self.print_help_and_exit(1);
+                                            }
+                                        }
+                                        Flag::Switch(desc) => {
+                                            ctx.data.insert(desc.name, String::new());
+                                        }
                                     }
                                 } else {
                                     println!("Aborting: unknown flag '{}'", a);
                                     self.print_help_and_exit(1);
                                 }
                             } else {
-                                ctx.params.push(a.to_string());
+                                match self.params {
+                                    CommandParams::None => {
+                                        println!("Aborting: unexpected parameter {}", a);
+                                        self.print_help_and_exit(1);
+                                    }
+                                    CommandParams::Single(_) => {
+                                        if ctx.params.len() == 1 {
+                                            println!("Aborting: too many parameters: {}", a);
+                                            self.print_help_and_exit(1);
+                                        }
+
+                                        ctx.params.push(a.to_string());
+                                    }
+                                    CommandParams::Multi(_) => {
+                                        ctx.params.push(a.to_string());
+                                    }
+                                }
                             }
                         }
 
@@ -122,51 +180,44 @@ impl Command {
     }
 
     fn print_help_and_exit(&self, code: i32) {
-        let mut help_str = String::with_capacity(20);
-        help_str.push_str(&format!("\nUsage: {}", self.name));
+        // let mut help_str = String::with_capacity(20);
+        let mut buf = Vec::new();
+        buf.push(format!("\nUsage: {}", self.name));
 
         if self.subcommands.len() > 0 {
-            help_str.push_str(&format!(" COMMAND"));
+            buf.push(format!(" COMMAND"));
         }
 
         if self.flags.len() > 0 {
-            help_str.push_str(&format!(" OPTIONS"));
+            buf.push(format!(" OPTIONS"));
         }
 
         match self.params {
-            CommandParams::Single(name) => help_str.push_str(&format!(" {}", name)),
-            CommandParams::Multi(name) => help_str.push_str(&format!(" {0} [{0}...]", name)),
+            CommandParams::Single(name) => buf.push(format!(" {}", name)),
+            CommandParams::Multi(name) => buf.push(format!(" {0} [{0}...]", name)),
             _ => {}
         }
 
-        help_str.push_str(&format!("\n\n{}\n", self.description));
+        buf.push(format!("\n\n{}\n", self.description));
 
         if self.subcommands.len() > 0 {
-            help_str.push_str("\nCommands:");
+            buf.push("\nCommands:".to_string());
 
             for c in self.subcommands.iter() {
-                help_str.push_str(&format!("\n  {}\t{}", c.name, c.description));
+                buf.push(format!("\n  {:<8}    {}", c.name, c.description));
             }
         }
 
         if self.flags.len() > 0 {
-            help_str.push_str("\nOptions:");
+            buf.push("\nOptions:".to_string());
 
             for f in self.flags.iter() {
-                let mut alias_str = String::with_capacity(f.aliases.len() * 2);
-                if f.aliases.len() > 0 {
-                    for a in f.aliases.iter() {
-                        alias_str.push_str(&format!("-{},", a));
-                    }
-                }
-                help_str.push_str(&format!(
-                    "\n  {} --{} string\t{}",
-                    alias_str, f.name, f.description
-                ));
+                let flag_str = format!("-{} --{}", f.short(), f.name());
+                buf.push(format!("\n  {:<18}    {}", flag_str, f.description()));
             }
         }
 
-        println!("{}", help_str);
+        println!("{}", buf.join(""));
         std::process::exit(code);
     }
 }
@@ -207,7 +258,7 @@ impl Cli {
     fn print_help_and_exit(&self, code: i32) {
         let mut command_str = String::with_capacity(20);
         for c in self.commands.iter() {
-            let s = format!("  {}  {}\n", c.name, c.description);
+            let s = format!("  {:<8}    {}\n", c.name, c.description);
             command_str.push_str(&s);
         }
 
@@ -257,16 +308,16 @@ fn main() {
                         action: cmd::list::create,
                         subcommands: vec![],
                         flags: vec![
-                            Flag {
+                            Flag::Flag(FlagDescription {
                                 name: "title",
-                                aliases: vec!["t"],
+                                short: "t",
                                 description: "the list title",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "desc",
-                                aliases: vec!["d"],
+                                short: "d",
                                 description: "the list description",
-                            },
+                            }),
                         ],
                     },
                     Command {
@@ -286,16 +337,16 @@ fn main() {
                         action: cmd::list::edit,
                         subcommands: vec![],
                         flags: vec![
-                            Flag {
+                            Flag::Flag(FlagDescription {
                                 name: "title",
-                                aliases: vec!["t"],
+                                short: "t",
                                 description: "the list title",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "desc",
-                                aliases: vec!["d"],
+                                short: "d",
                                 description: "the list description",
-                            },
+                            }),
                         ],
                     },
                     Command {
@@ -313,13 +364,25 @@ fn main() {
                 name: "item",
                 aliases: vec!["i"],
                 description: "Manage items",
-                params: CommandParams::None,
+                params: CommandParams::Single("ITEM"),
                 action: cmd::item,
-                flags: vec![Flag {
-                    name: "list",
-                    aliases: vec!["l"],
-                    description: "the list to show",
-                }],
+                flags: vec![
+                    Flag::Flag(FlagDescription {
+                        name: "list",
+                        short: "l",
+                        description: "The list to get the item from",
+                    }),
+                    Flag::Switch(FlagDescription {
+                        name: "complete",
+                        short: "c",
+                        description: "Mark the item as complete",
+                    }),
+                    Flag::Switch(FlagDescription {
+                        name: "incomplete",
+                        short: "i",
+                        description: "Mark the item as incomplete",
+                    }),
+                ],
                 subcommands: vec![
                     Command {
                         name: "add",
@@ -329,21 +392,21 @@ fn main() {
                         action: cmd::item::add,
                         subcommands: vec![],
                         flags: vec![
-                            Flag {
+                            Flag::Flag(FlagDescription {
                                 name: "list",
-                                aliases: vec!["l"],
+                                short: "l",
                                 description: "the list to add the item too",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "title",
-                                aliases: vec!["t"],
+                                short: "t",
                                 description: "the item title",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "desc",
-                                aliases: vec!["d"],
+                                short: "d",
                                 description: "the item description",
-                            },
+                            }),
                         ],
                     },
                     Command {
@@ -363,21 +426,21 @@ fn main() {
                         action: cmd::item::edit,
                         subcommands: vec![],
                         flags: vec![
-                            Flag {
+                            Flag::Flag(FlagDescription {
                                 name: "list",
-                                aliases: vec!["l"],
+                                short: "l",
                                 description: "the list the item is in",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "title",
-                                aliases: vec!["t"],
+                                short: "t",
                                 description: "the item title",
-                            },
-                            Flag {
+                            }),
+                            Flag::Flag(FlagDescription {
                                 name: "desc",
-                                aliases: vec!["d"],
+                                short: "d",
                                 description: "the item description",
-                            },
+                            }),
                         ],
                     },
                     Command {
@@ -387,11 +450,11 @@ fn main() {
                         params: CommandParams::Multi("ITEM"),
                         action: cmd::item::delete,
                         subcommands: vec![],
-                        flags: vec![Flag {
+                        flags: vec![Flag::Flag(FlagDescription {
                             name: "list",
-                            aliases: vec!["l"],
+                            short: "l",
                             description: "the list the item is in",
-                        }],
+                        })],
                     },
                 ],
             },

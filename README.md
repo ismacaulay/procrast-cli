@@ -23,6 +23,11 @@ procrast item edit <id>
 
 procrast item delete <id>
    deletes the the exisiting id after confirmation
+
+procrast item <id> [-l <list_id>]
+    _: Show item
+    --complete, -c: Mark item complete
+    --incomplete, -i: Mark item incomplete
 ```
 
 #### list management

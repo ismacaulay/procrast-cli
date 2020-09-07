@@ -37,36 +37,83 @@ pub fn list(ctx: &Context) {
 }
 
 pub fn item(ctx: &Context) {
-    let list_id: Option<String>;
+    let list_id: String;
 
     if let Some(list) = ctx.data.get("list") {
         if let Some(l) = ctx.db.find_list(list) {
-            list_id = Some(l.id.to_string());
+            list_id = l.id.to_string();
         } else {
             println!("Aborting. Unknown list {}", list);
             std::process::exit(1);
         }
     } else {
-        list_id = ctx.db.get_current_list();
-        if list_id.is_none() {
-            println!("Aborting. No list specified");
-            std::process::exit(1);
+        match ctx.db.get_current_list() {
+            Some(current) => {
+                list_id = current;
+            }
+            None => {
+                println!("Aborting. No list specified");
+                std::process::exit(1);
+            }
         }
     }
 
-    // TODO: check for -l argument to specify the list
-    if let Some(id) = list_id {
-        let items = ctx.db.get_items(&id);
+    if ctx.params.len() == 0 {
+        let items = ctx.db.get_items(&list_id);
 
-        let mut printer = TablePrinter::new(vec!["ID".to_string(), "TITLE".to_string()]);
+        let mut printer = TablePrinter::new(vec![
+            "ID".to_string(),
+            "STATE".to_string(),
+            "TITLE".to_string(),
+        ]);
         for i in items.iter() {
             printer
-                .add_row(vec![i.id.to_string(), i.title.clone()])
+                .add_row(vec![
+                    i.id.to_string(),
+                    if i.state == 0 {
+                        "-".to_string()
+                    } else {
+                        "x".to_string()
+                    },
+                    i.title.clone(),
+                ])
                 .expect("Failed to add row to printer");
         }
         printer.print();
     } else {
-        println!("No list selected");
+        let complete_flag = ctx.data.get("complete");
+        let incomplete_flag = ctx.data.get("incomplete");
+
+        if complete_flag.is_some() && incomplete_flag.is_some() {
+            println!("Aborting: an item can not be complete and incomplete, this is ambiguous!");
+            std::process::exit(1);
+        }
+
+        let item_id = &ctx.params[0];
+        if let Some(item) = ctx.db.get_item(&list_id, item_id).as_mut() {
+            if let Some(_) = complete_flag {
+                item.state = 1;
+                ctx.db.update_item(&list_id, item);
+            } else if let Some(_) = incomplete_flag {
+                item.state = 0;
+                ctx.db.update_item(&list_id, item);
+            } else {
+                println!("{}: {}", item.id, item.title);
+
+                println!(
+                    "\nState: {}",
+                    if item.state == 0 {
+                        "INCOMPLETE"
+                    } else {
+                        "COMPLETE"
+                    }
+                );
+
+                if item.description.len() > 0 {
+                    println!("\n{}\n", item.description);
+                }
+            }
+        }
     }
 }
 
@@ -306,7 +353,7 @@ pub mod item {
             }
 
             let item_id = &ctx.params[0];
-            if let Some(item) = ctx.db.get_item(&list_id, item_id).as_mut() {
+            if let Some(item) = ctx.db.get_item(&list_id, item_id) {
                 println!("{}: {}", item.id, item.title);
 
                 if item.description.len() > 0 {
