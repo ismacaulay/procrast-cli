@@ -101,7 +101,7 @@ pub fn item(ctx: &Context) {
                 println!("{}: {}", item.id, item.title);
 
                 println!(
-                    "\nState: {}",
+                    "\nStatus: {}",
                     if item.state == 0 {
                         "INCOMPLETE"
                     } else {

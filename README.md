@@ -50,7 +50,7 @@ procrast list show
     shows the items in the list
 ```
 
-#### commands
+#### other
 
 Other commands.
 
@@ -58,26 +58,6 @@ Other commands.
 procrast use <list>
     sets the currently used list
 ```
-
-### TODO
-
-- The list title needs to be unique, but enforced at the business logic level, not the db level
-- Add a way to clear the current list
-- Allow command aliases to be specified without spaces (ie. lc == list create)
-- Implement a table printer
-
-```
-let table = table::new();
-table.add_row(["ONE", "TWO", "THREE"]) // OK
-table.add_row(["foo", "bar", "baz"]) // OK
-table.add_row(["f", "b"]); // OK, empty string for last col
-table.add_row(["a", "b", "c", "d"]); // Err, to many cols
-
-table.print();
-```
-
-- api integration and sync
-- configuration to specify db locations and api endpoint for dev vs prod
 
 ### ideas
 
