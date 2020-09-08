@@ -1,9 +1,9 @@
 mod cmd;
 mod config;
-mod db;
 mod input;
 mod models;
 mod output;
+mod sqlite;
 mod utils;
 
 // TODO: look into the built package
@@ -55,7 +55,7 @@ impl Flag {
 }
 
 pub struct Context {
-    db: db::sqlite::SQLiteDatabase,
+    db: sqlite::SQLiteDatabase,
     data: HashMap<&'static str, String>,
     params: Vec<String>,
 }
@@ -63,7 +63,7 @@ pub struct Context {
 impl Context {
     fn new() -> Context {
         Context {
-            db: db::sqlite::new(),
+            db: sqlite::new(),
             data: HashMap::new(),
             params: Vec::new(),
         }

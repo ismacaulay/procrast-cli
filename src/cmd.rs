@@ -1,4 +1,4 @@
-use crate::{db::Database, output::TablePrinter, Context};
+use crate::{output::TablePrinter, Context};
 
 pub fn use_list(ctx: &Context) {
     if ctx.params.len() != 0 {
@@ -118,7 +118,7 @@ pub fn item(ctx: &Context) {
 }
 
 pub mod list {
-    use crate::{db::Database, input, utils, Context};
+    use crate::{input, utils, Context};
 
     pub fn create(ctx: &Context) {
         let mut title: Option<String> = None;
@@ -270,7 +270,7 @@ pub mod list {
 }
 
 pub mod item {
-    use crate::{db::Database, input, utils, Context};
+    use crate::{input, utils, Context};
 
     pub fn add(ctx: &Context) {
         let list_id: Option<String>;
