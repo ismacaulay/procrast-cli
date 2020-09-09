@@ -11,3 +11,10 @@ pub fn split_text_into_title_desc(text: &String) -> Option<(Option<String>, Opti
 
     return None;
 }
+
+pub fn now() -> i64 {
+    return match std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH) {
+        Ok(d) => d.as_secs() as i64,
+        Err(_) => panic!("Time before epoch"),
+    };
+}

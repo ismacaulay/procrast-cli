@@ -1,6 +1,7 @@
 mod cmd;
 mod config;
 mod input;
+mod log;
 mod models;
 mod output;
 mod sqlite;
@@ -55,7 +56,7 @@ impl Flag {
 }
 
 pub struct Context {
-    db: sqlite::SQLiteDatabase,
+    db: rusqlite::Connection,
     data: HashMap<&'static str, String>,
     params: Vec<String>,
 }
@@ -75,7 +76,7 @@ struct Command {
     aliases: Vec<&'static str>,
     description: &'static str,
     params: CommandParams,
-    action: fn(ctx: &Context),
+    action: fn(ctx: &mut Context) -> cmd::Result<()>,
     subcommands: Vec<Command>,
     flags: Vec<Flag>,
 }
@@ -83,7 +84,13 @@ struct Command {
 impl Command {
     fn run(&self, ctx: &mut Context, args: &[String]) {
         if args.len() == 0 {
-            (self.action)(&ctx);
+            match (self.action)(ctx) {
+                Ok(_) => {}
+                Err(e) => {
+                    println!("Aborting: {}", e);
+                    std::process::exit(1);
+                }
+            };
         } else {
             let cmd = args[0].as_str();
             match cmd {
@@ -172,7 +179,13 @@ impl Command {
                             }
                         }
 
-                        (self.action)(&ctx);
+                        match (self.action)(ctx) {
+                            Ok(_) => {}
+                            Err(e) => {
+                                println!("Aborting: {}", e);
+                                std::process::exit(1);
+                            }
+                        }
                     }
                 }
             };
