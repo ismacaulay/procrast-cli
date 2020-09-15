@@ -1,3 +1,4 @@
+use crate::utils::Result;
 #[cfg(production)]
 use directories::ProjectDirs;
 use std::{fs, path::PathBuf};
@@ -23,6 +24,11 @@ pub fn get_data_dir() -> Option<PathBuf> {
     }
 
     return Some(local_dir);
+}
+
+#[cfg(not(production))]
+pub fn get_server_endpoint() -> Result<String> {
+    Ok(String::from("http://localhost:8080/procrast/v1"))
 }
 
 // #[cfg(production)]

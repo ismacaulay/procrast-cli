@@ -3,8 +3,10 @@ mod config;
 mod input;
 mod log;
 mod models;
+mod network;
 mod output;
 mod sqlite;
+mod sync;
 mod utils;
 
 // TODO: look into the built package
@@ -57,6 +59,7 @@ impl Flag {
 
 pub struct Context {
     db: rusqlite::Connection,
+    client: reqwest::blocking::Client,
     data: HashMap<&'static str, String>,
     params: Vec<String>,
 }
@@ -65,6 +68,7 @@ impl Context {
     fn new() -> Context {
         Context {
             db: sqlite::new(),
+            client: reqwest::blocking::Client::new(),
             data: HashMap::new(),
             params: Vec::new(),
         }
@@ -76,7 +80,7 @@ struct Command {
     aliases: Vec<&'static str>,
     description: &'static str,
     params: CommandParams,
-    action: fn(ctx: &mut Context) -> cmd::Result<()>,
+    action: fn(ctx: &mut Context) -> utils::Result<()>,
     subcommands: Vec<Command>,
     flags: Vec<Flag>,
 }
@@ -302,6 +306,15 @@ fn main() {
                 description: "Set the default list",
                 params: CommandParams::Single("LIST"),
                 action: cmd::use_list,
+                flags: vec![],
+                subcommands: vec![],
+            },
+            Command {
+                name: "sync",
+                aliases: vec![],
+                description: "Sync with the remote server",
+                params: CommandParams::None,
+                action: sync::run,
                 flags: vec![],
                 subcommands: vec![],
             },

@@ -1,7 +1,4 @@
-use crate::{log, models, output::TablePrinter, sqlite, Context};
-use std::result;
-
-pub type Result<T, E = String> = result::Result<T, E>;
+use crate::{log, models, output::TablePrinter, sqlite, utils::Result, Context};
 
 fn get_current_list(ctx: &Context) -> Result<uuid::Uuid> {
     match sqlite::get_current_list(&ctx.db) {

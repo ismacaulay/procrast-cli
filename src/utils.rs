@@ -1,3 +1,6 @@
+use std::result;
+pub type Result<T, E = String> = result::Result<T, E>;
+
 pub fn split_text_into_title_desc(text: &String) -> Option<(Option<String>, Option<String>)> {
     let trimmed = text.trim();
     if trimmed.len() > 0 {
