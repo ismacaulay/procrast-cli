@@ -30,6 +30,9 @@ pub fn run(ctx: &mut Context) -> Result<()> {
                         "LIST CREATE" => handle_list_create(tx, history),
                         "LIST UPDATE" => handle_list_update(tx, history),
                         "LIST DELETE" => handle_list_delete(tx, history),
+                        "ITEM CREATE" => handle_item_create(tx, history),
+                        "ITEM UPDATE" => handle_item_update(tx, history),
+                        "ITEM DELETE" => handle_item_delete(tx, history),
                         _ => Err(format!("Unknown history command: {}", history.command)),
                     }?;
 
@@ -82,7 +85,7 @@ fn decode_history_state<T: DeserializeOwned>(history: &models::ApiHistory) -> Re
 }
 
 fn handle_list_create(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
-    let list = decode_history_state::<models::ApiList>(history)?;
+    let list = decode_history_state::<models::CmdListState>(history)?;
     let local_id = sqlite::get_next_list_id(conn)?;
 
     sqlite::create_list(
@@ -103,7 +106,7 @@ fn handle_list_create(conn: &rusqlite::Connection, history: &models::ApiHistory)
 }
 
 fn handle_list_update(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
-    let api_list = decode_history_state::<models::ApiList>(history)?;
+    let api_list = decode_history_state::<models::CmdListState>(history)?;
     let mut list = sqlite::find_list_by_uuid(conn, &api_list.uuid)?;
     list.title = api_list.title.clone();
     list.description = api_list.description.clone();
@@ -115,7 +118,7 @@ fn handle_list_update(conn: &rusqlite::Connection, history: &models::ApiHistory)
 }
 
 fn handle_list_delete(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
-    let api_list = decode_history_state::<models::CmdListDeleteState>(history)?;
+    let api_list = decode_history_state::<models::CmdDeleteState>(history)?;
     let list = sqlite::find_list_by_uuid(conn, &api_list.uuid)?;
 
     for item in sqlite::get_items(conn, &list.uuid)?.iter() {
@@ -123,6 +126,53 @@ fn handle_list_delete(conn: &rusqlite::Connection, history: &models::ApiHistory)
     }
 
     sqlite::delete_list(conn, &list)?;
+
+    Ok(())
+}
+
+fn handle_item_create(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
+    let state = decode_history_state::<models::CmdItemState>(history)?;
+
+    let mut list = sqlite::find_list_by_uuid(conn, &state.list_uuid)?;
+
+    sqlite::create_item(
+        conn,
+        &models::Item {
+            uuid: state.uuid,
+            id: list.next_item_id,
+            title: state.title.clone(),
+            description: state.description.clone(),
+            state: state.state,
+            created: state.created,
+            modified: state.modified,
+            list_uuid: state.list_uuid,
+        },
+    )?;
+
+    list.next_item_id += 1;
+    sqlite::update_list(conn, &list)?;
+
+    Ok(())
+}
+
+fn handle_item_update(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
+    let state = decode_history_state::<models::CmdItemState>(history)?;
+    let mut item = sqlite::find_item_by_uuid(conn, &state.uuid)?;
+    item.title = state.title.clone();
+    item.description = state.description.clone();
+    item.state = state.state;
+    item.modified = state.modified;
+
+    sqlite::update_item(conn, &item)?;
+
+    Ok(())
+}
+
+fn handle_item_delete(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
+    let state = decode_history_state::<models::CmdDeleteState>(history)?;
+    let item = sqlite::find_item_by_uuid(conn, &state.uuid)?;
+
+    sqlite::delete_item(conn, &item)?;
 
     Ok(())
 }

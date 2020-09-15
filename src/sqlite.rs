@@ -553,6 +553,18 @@ pub fn get_item(
     }
 }
 
+pub fn find_item_by_uuid(conn: &Connection, item_uuid: &Uuid) -> utils::Result<models::Item> {
+    match conn.query_row(
+        "SELECT uuid, id, title, description, state, created, modified, list_uuid
+            FROM items
+            WHERE uuid = (?1)",
+        params![item_uuid.to_hyphenated().to_string()],
+        |row| row_to_item(row),
+    ) {
+        Ok(item) => Ok(item),
+        Err(e) => Err(e.to_string()),
+    }
+}
 pub fn create_item(conn: &Connection, item: &models::Item) -> utils::Result<()> {
     if let Err(e) = conn.execute(
         "INSERT INTO items (uuid, id, title, description, state, created, modified, list_uuid)

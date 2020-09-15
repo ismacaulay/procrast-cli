@@ -41,7 +41,7 @@ pub struct ApiHistory {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ApiList {
+pub struct CmdListState {
     pub uuid: uuid::Uuid,
     pub title: String,
     pub description: String,
@@ -50,15 +50,16 @@ pub struct ApiList {
 }
 
 #[derive(Debug, Deserialize)]
-pub struct CmdListDeleteState {
+pub struct CmdDeleteState {
     pub uuid: uuid::Uuid,
 }
 
 #[derive(Debug, Deserialize)]
-pub struct ApiItem {
+pub struct CmdItemState {
     pub uuid: uuid::Uuid,
     pub title: String,
     pub description: String,
+    pub state: i8,
     pub created: i64,
     pub modified: i64,
     pub list_uuid: uuid::Uuid,
