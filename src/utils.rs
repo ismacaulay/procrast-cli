@@ -21,3 +21,10 @@ pub fn now() -> i64 {
         Err(_) => panic!("Time before epoch"),
     };
 }
+
+pub fn encode_history_state<T: serde::Serialize>(state: &T) -> Result<String> {
+    match serde_json::to_vec(state) {
+        Ok(json) => Ok(base64::encode(json)),
+        Err(e) => Err(format!("Failed to convert to json: {}", e)),
+    }
+}

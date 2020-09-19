@@ -315,7 +315,11 @@ fn main() {
                 description: "Sync with the remote server",
                 params: CommandParams::None,
                 action: sync::run,
-                flags: vec![],
+                flags: vec![Flag::Switch(FlagDescription {
+                    name: "all",
+                    short: "",
+                    description: "sync all",
+                })],
                 subcommands: vec![],
             },
             Command {

@@ -32,7 +32,7 @@ pub struct History {
     pub synced: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct ApiHistory {
     pub uuid: uuid::Uuid,
     pub command: String,
@@ -41,6 +41,11 @@ pub struct ApiHistory {
 }
 
 #[derive(Debug, Deserialize)]
+pub struct ApiHistoryCreatedState {
+    pub uuid: uuid::Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CmdListState {
     pub uuid: uuid::Uuid,
     pub title: String,
@@ -49,12 +54,12 @@ pub struct CmdListState {
     pub modified: i64,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CmdDeleteState {
     pub uuid: uuid::Uuid,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CmdItemState {
     pub uuid: uuid::Uuid,
     pub title: String,
@@ -64,3 +69,10 @@ pub struct CmdItemState {
     pub modified: i64,
     pub list_uuid: uuid::Uuid,
 }
+
+pub const CMD_LIST_CREATE: &'static str = "LIST CREATE";
+pub const CMD_LIST_UPDATE: &'static str = "LIST UPDATE";
+pub const CMD_LIST_DELETE: &'static str = "LIST DELETE";
+pub const CMD_ITEM_CREATE: &'static str = "ITEM CREATE";
+pub const CMD_ITEM_UPDATE: &'static str = "ITEM UPDATE";
+pub const CMD_ITEM_DELETE: &'static str = "ITEM DELETE";

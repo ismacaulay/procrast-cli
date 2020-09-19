@@ -1,23 +1,47 @@
 use crate::{
-    models, network, sqlite,
+    log,
+    models::{
+        self, CMD_ITEM_CREATE, CMD_ITEM_DELETE, CMD_ITEM_UPDATE, CMD_LIST_CREATE, CMD_LIST_DELETE,
+        CMD_LIST_UPDATE,
+    },
+    network, sqlite,
     utils::{self, Result},
     Context,
 };
-use serde::{de::DeserializeOwned, Deserialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
 #[derive(Debug, Deserialize)]
 struct HistoryResponse {
     history: Vec<models::ApiHistory>,
 }
 
+#[derive(Debug, Serialize)]
+struct HistoryPostRequest {
+    history: Vec<models::ApiHistory>,
+}
+
+#[derive(Debug, Deserialize)]
+struct HistoryPostResponse {
+    processed: Vec<uuid::Uuid>,
+}
+
 pub fn run(ctx: &mut Context) -> Result<()> {
+    let all = match ctx.data.get("all") {
+        Some(_) => true,
+        None => false,
+    };
+
     // get the last local sync time
     // send request to /history with the last local sync time (or empty if none)
     //      for each of the results, add to local db
     //      if there is another page send another request, else finish
     // update last local sync time with now
     let endpoint = if let Some(last_local_sync) = get_last_local_sync(ctx) {
-        format!("/history?since={}", last_local_sync)
+        if !all {
+            format!("/history?since={}", last_local_sync)
+        } else {
+            String::from("/history")
+        }
     } else {
         String::from("/history")
     };
@@ -26,13 +50,18 @@ pub fn run(ctx: &mut Context) -> Result<()> {
         Ok(resp) => {
             sqlite::transaction(&mut ctx.db, |tx| {
                 for history in resp.history.iter() {
+                    if let Ok(_) = sqlite::find_history_by_uuid(tx, &history.uuid) {
+                        sqlite::update_history_synced(tx, &history.uuid, true)?;
+                        continue;
+                    }
+
                     match history.command.as_str() {
-                        "LIST CREATE" => handle_list_create(tx, history),
-                        "LIST UPDATE" => handle_list_update(tx, history),
-                        "LIST DELETE" => handle_list_delete(tx, history),
-                        "ITEM CREATE" => handle_item_create(tx, history),
-                        "ITEM UPDATE" => handle_item_update(tx, history),
-                        "ITEM DELETE" => handle_item_delete(tx, history),
+                        CMD_LIST_CREATE => handle_list_create(tx, history),
+                        CMD_LIST_UPDATE => handle_list_update(tx, history),
+                        CMD_LIST_DELETE => handle_list_delete(tx, history),
+                        CMD_ITEM_CREATE => handle_item_create(tx, history),
+                        CMD_ITEM_UPDATE => handle_item_update(tx, history),
+                        CMD_ITEM_DELETE => handle_item_delete(tx, history),
                         _ => Err(format!("Unknown history command: {}", history.command)),
                     }?;
 
@@ -59,11 +88,47 @@ pub fn run(ctx: &mut Context) -> Result<()> {
         }
     };
 
-    // get the last server sync time
-    // gather all commands since last server sync that has not been synced
+    // gather all commands that has not been synced
     //      send post to /sync with the commands
     //      update commands synced flag
     //  update last server sync
+    let mut request = HistoryPostRequest {
+        history: Vec::new(),
+    };
+
+    let result = if all {
+        sqlite::get_history(&ctx.db)?
+    } else {
+        sqlite::get_unsynced_history(&ctx.db)?
+    };
+    for history in result.iter() {
+        request.history.push(models::ApiHistory {
+            uuid: history.uuid,
+            command: history.command.clone(),
+            state: history.state.clone(),
+            created: history.created,
+        })
+    }
+
+    if request.history.len() > 0 {
+        match network::send_post_request::<HistoryPostRequest, HistoryPostResponse>(
+            &ctx.client,
+            &"/history".to_string(),
+            &request,
+        ) {
+            Ok(resp) => {
+                for processed in resp.processed.iter() {
+                    if let Err(e) = sqlite::update_history_synced(&ctx.db, &processed, true) {
+                        log::println(format!("Failed to updated history synced state: {}", e));
+                    }
+                }
+            }
+            Err(e) => {
+                return Err(format!("Failed to send post request: {}", e));
+            }
+        };
+    }
+
     Ok(())
 }
 

@@ -1,4 +1,8 @@
-use crate::{config, log, models, utils};
+use crate::{
+    config, log,
+    models::{self, CMD_ITEM_CREATE, CMD_LIST_CREATE},
+    utils,
+};
 use rusqlite::{params, Connection, NO_PARAMS};
 use std::{
     collections::HashMap,
@@ -177,6 +181,26 @@ fn migrate_database(conn: &mut rusqlite::Connection, from: i16) -> utils::Result
                         params![uuid_str, id, title, desc, now],
                     )
                     .expect("Failed to insert lists");
+
+                    let state = utils::encode_history_state(&models::CmdListState {
+                        uuid: uuid,
+                        title: title,
+                        description: desc,
+                        created: now,
+                        modified: now,
+                    })?;
+                    tx.execute(
+                        "INSERT INTO history (uuid, command, state, created, synced)
+                        VALUES (?1, ?2, ?3, ?4, ?5)",
+                        params![
+                            Uuid::new_v4().to_hyphenated().to_string(),
+                            CMD_LIST_CREATE,
+                            state,
+                            now,
+                            false
+                        ],
+                    )
+                    .expect("Failed to create history for list");
                 }
 
                 set_next_list_id(&tx, largest_list_id + 1)?;
@@ -250,26 +274,45 @@ fn migrate_database(conn: &mut rusqlite::Connection, from: i16) -> utils::Result
                 for row in rows {
                     let uuid = Uuid::new_v4();
                     let (id, title, desc, state, list_id) = row.unwrap();
-                    let list_uuid = list_id_uuid_map
-                        .get(&list_id)
-                        .unwrap()
-                        .to_hyphenated()
-                        .to_string();
+                    let list_uuid = list_id_uuid_map.get(&list_id).unwrap();
+                    let list_uuid_str = list_uuid.to_hyphenated().to_string();
                     let uuid_str = uuid.to_hyphenated().to_string();
 
-                    if let Some(largest) = largest_list_item_id.get(&list_uuid) {
+                    if let Some(largest) = largest_list_item_id.get(&list_uuid_str) {
                         if *largest < id {
-                            largest_list_item_id.insert(list_uuid.clone(), id);
+                            largest_list_item_id.insert(list_uuid_str.clone(), id);
                         }
                     } else {
-                        largest_list_item_id.insert(list_uuid.clone(), id);
+                        largest_list_item_id.insert(list_uuid_str.clone(), id);
                     }
 
                     tx.execute("
                         INSERT INTO items_update (uuid, id, title, description, state, created, modified, list_uuid)
                         VALUES (?1, ?2, ?3, ?4, ?5, ?5, ?6, ?7)",
-                        params![uuid_str, id, title, desc, state, now, list_uuid]
+                        params![uuid_str, id, title, desc, state, now, list_uuid_str]
                     ).expect("Failed to add item to items table");
+
+                    let state = utils::encode_history_state(&models::CmdItemState {
+                        uuid: uuid,
+                        title: title,
+                        description: desc,
+                        state: state as i8,
+                        created: now,
+                        modified: now,
+                        list_uuid: *list_uuid,
+                    })?;
+                    tx.execute(
+                        "INSERT INTO history (uuid, command, state, created, synced)
+                        VALUES (?1, ?2, ?3, ?4, ?5)",
+                        params![
+                            Uuid::new_v4().to_hyphenated().to_string(),
+                            CMD_ITEM_CREATE,
+                            state,
+                            now,
+                            false
+                        ],
+                    )
+                    .expect("Failed to insert item history");
                 }
 
                 for (uuid, largest_id) in largest_list_item_id.iter() {
@@ -321,6 +364,16 @@ fn row_to_item(row: &rusqlite::Row) -> rusqlite::Result<models::Item> {
         created: row.get(5)?,
         modified: row.get(6)?,
         list_uuid: Uuid::parse_str(row.get::<_, String>(7).unwrap().as_str()).unwrap(),
+    })
+}
+
+fn row_to_history(row: &rusqlite::Row) -> rusqlite::Result<models::History> {
+    Ok(models::History {
+        uuid: Uuid::parse_str(row.get::<_, String>(0).unwrap().as_str()).unwrap(),
+        command: row.get(1)?,
+        state: row.get(2)?,
+        created: row.get(3)?,
+        synced: row.get(4)?,
     })
 }
 
@@ -632,6 +685,86 @@ pub fn create_history(conn: &Connection, history: &models::History) -> utils::Re
             history.created,
             history.synced,
         ],
+    ) {
+        return Err(e.to_string());
+    }
+
+    Ok(())
+}
+
+pub fn find_history_by_uuid(
+    conn: &Connection,
+    uuid: &uuid::Uuid,
+) -> utils::Result<models::History> {
+    match conn.query_row(
+        "SELECT uuid, command, state, created, synced
+            FROM history
+            WHERE uuid = (?1)",
+        params![uuid.to_hyphenated().to_string()],
+        |row| row_to_history(row),
+    ) {
+        Ok(history) => Ok(history),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+pub fn get_history(conn: &Connection) -> utils::Result<Vec<models::History>> {
+    let mut stmt = match conn.prepare(
+        "SELECT uuid, command, state, created, synced
+                FROM history
+                ORDER BY created ASC",
+    ) {
+        Ok(stmt) => stmt,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let iter = match stmt.query_map(NO_PARAMS, |row| row_to_history(row)) {
+        Ok(iter) => iter,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let mut history = Vec::new();
+    for h in iter {
+        history.push(h.unwrap());
+    }
+
+    Ok(history)
+}
+
+pub fn get_unsynced_history(conn: &Connection) -> utils::Result<Vec<models::History>> {
+    let mut stmt = match conn.prepare(
+        "SELECT uuid, command, state, created, synced
+                FROM history
+                WHERE synced = 0
+                ORDER BY created ASC",
+    ) {
+        Ok(stmt) => stmt,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let iter = match stmt.query_map(NO_PARAMS, |row| row_to_history(row)) {
+        Ok(iter) => iter,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let mut history = Vec::new();
+    for h in iter {
+        history.push(h.unwrap());
+    }
+
+    Ok(history)
+}
+
+pub fn update_history_synced(
+    conn: &Connection,
+    uuid: &uuid::Uuid,
+    synced: bool,
+) -> utils::Result<()> {
+    if let Err(e) = conn.execute(
+        "UPDATE history
+            SET synced = ?2
+            WHERE uuid = ?1",
+        params![uuid.to_hyphenated().to_string(), synced],
     ) {
         return Err(e.to_string());
     }
