@@ -49,3 +49,4 @@ pub fn get_stdin_input() -> String {
 
     return String::from(message.trim_end());
 }
+

@@ -1,3 +1,4 @@
+mod auth;
 mod cmd;
 mod config;
 mod input;
@@ -60,6 +61,7 @@ impl Flag {
 pub struct Context {
     db: rusqlite::Connection,
     client: reqwest::blocking::Client,
+    config: models::Config,
     data: HashMap<&'static str, String>,
     params: Vec<String>,
 }
@@ -69,6 +71,7 @@ impl Context {
         Context {
             db: sqlite::new(),
             client: reqwest::blocking::Client::new(),
+            config: config::load().unwrap(),
             data: HashMap::new(),
             params: Vec::new(),
         }
@@ -300,6 +303,15 @@ fn main() {
         name: "procrast",
         description: "A cli for managing your procrastination",
         commands: vec![
+            Command {
+                name: "login",
+                aliases: vec![],
+                description: "Login to the cloud",
+                params: CommandParams::None,
+                action: auth::login,
+                flags: vec![],
+                subcommands: vec![],
+            },
             Command {
                 name: "use",
                 aliases: vec!["u"],

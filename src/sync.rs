@@ -26,10 +26,16 @@ struct HistoryPostResponse {
 }
 
 pub fn run(ctx: &mut Context) -> Result<()> {
+    if ctx.config.base_url == "" {
+        return Err(String::from("No base_url configured"));
+    }
+
     let all = match ctx.data.get("all") {
         Some(_) => true,
         None => false,
     };
+
+    let base_url = format!("{}/procrast/v1", ctx.config.base_url);
 
     // get the last local sync time
     // send request to /history with the last local sync time (or empty if none)
@@ -38,15 +44,19 @@ pub fn run(ctx: &mut Context) -> Result<()> {
     // update last local sync time with now
     let endpoint = if let Some(last_local_sync) = get_last_local_sync(ctx) {
         if !all {
-            format!("/history?since={}", last_local_sync)
+            format!("{}/history?since={}", base_url, last_local_sync)
         } else {
-            String::from("/history")
+            format!("{}/history", base_url)
         }
     } else {
-        String::from("/history")
+        format!("{}/history", base_url)
     };
 
-    match network::send_get_request::<HistoryResponse>(&ctx.client, &endpoint) {
+    match network::send_get_request::<HistoryResponse>(
+        &ctx.client,
+        &endpoint,
+        Some(&ctx.config.token),
+    ) {
         Ok(resp) => {
             sqlite::transaction(&mut ctx.db, |tx| {
                 for history in resp.history.iter() {
@@ -110,11 +120,13 @@ pub fn run(ctx: &mut Context) -> Result<()> {
         })
     }
 
+    let url = format!("{}/history", base_url);
     if request.history.len() > 0 {
         match network::send_post_request::<HistoryPostRequest, HistoryPostResponse>(
             &ctx.client,
-            &"/history".to_string(),
+            &url,
             &request,
+            Some(&ctx.config.token),
         ) {
             Ok(resp) => {
                 for processed in resp.processed.iter() {

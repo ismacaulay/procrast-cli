@@ -76,3 +76,9 @@ pub const CMD_LIST_DELETE: &'static str = "LIST DELETE";
 pub const CMD_ITEM_CREATE: &'static str = "ITEM CREATE";
 pub const CMD_ITEM_UPDATE: &'static str = "ITEM UPDATE";
 pub const CMD_ITEM_DELETE: &'static str = "ITEM DELETE";
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Config {
+    pub base_url: String,
+    pub token: String,
+}
