@@ -196,13 +196,13 @@ fn handle_list_update(conn: &rusqlite::Connection, history: &models::ApiHistory)
 
 fn handle_list_delete(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
     let api_list = decode_history_state::<models::CmdDeleteState>(history)?;
-    let list = sqlite::find_list_by_uuid(conn, &api_list.uuid)?;
+    if let Ok(list) = sqlite::find_list_by_uuid(conn, &api_list.uuid) {
+        for item in sqlite::get_items(conn, &list.uuid)?.iter() {
+            sqlite::delete_item(conn, item)?;
+        }
 
-    for item in sqlite::get_items(conn, &list.uuid)?.iter() {
-        sqlite::delete_item(conn, item)?;
+        sqlite::delete_list(conn, &list)?;
     }
-
-    sqlite::delete_list(conn, &list)?;
 
     Ok(())
 }
@@ -247,9 +247,9 @@ fn handle_item_update(conn: &rusqlite::Connection, history: &models::ApiHistory)
 
 fn handle_item_delete(conn: &rusqlite::Connection, history: &models::ApiHistory) -> Result<()> {
     let state = decode_history_state::<models::CmdDeleteState>(history)?;
-    let item = sqlite::find_item_by_uuid(conn, &state.uuid)?;
-
-    sqlite::delete_item(conn, &item)?;
+    if let Ok(item) = sqlite::find_item_by_uuid(conn, &state.uuid) {
+        sqlite::delete_item(conn, &item)?;
+    }
 
     Ok(())
 }
