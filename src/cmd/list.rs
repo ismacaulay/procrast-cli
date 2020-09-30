@@ -32,14 +32,15 @@ pub fn create(ctx: &mut Context) -> Result<()> {
         if text.len() > 0 {
             title = Some(text);
         }
-    } else if title != None && description == None {
-        // save title with empty description
-        description = Some(String::from(""));
     }
 
     if title == None {
         println!("Aborting: no list title");
         std::process::exit(1);
+    }
+
+    if description == None {
+        description = Some(String::from(""));
     }
 
     let now = utils::now();
