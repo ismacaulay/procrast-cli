@@ -59,6 +59,8 @@ pub fn run(ctx: &mut Context) -> Result<()> {
     ) {
         Ok(resp) => {
             sqlite::transaction(&mut ctx.db, |tx| {
+                sqlite::set_last_local_sync(tx, utils::now())?;
+
                 for history in resp.history.iter() {
                     if let Ok(_) = sqlite::find_history_by_uuid(tx, &history.uuid) {
                         sqlite::update_history_synced(tx, &history.uuid, true)?;
@@ -81,13 +83,11 @@ pub fn run(ctx: &mut Context) -> Result<()> {
                             uuid: history.uuid,
                             command: history.command.clone(),
                             state: history.state.clone(),
-                            created: history.created,
+                            timestamp: history.timestamp,
                             synced: true,
                         },
                     )?;
                 }
-
-                sqlite::set_last_local_sync(tx, utils::now())?;
 
                 Ok(())
             })?;
@@ -116,7 +116,7 @@ pub fn run(ctx: &mut Context) -> Result<()> {
             uuid: history.uuid,
             command: history.command.clone(),
             state: history.state.clone(),
-            created: history.created,
+            timestamp: history.timestamp,
         })
     }
 

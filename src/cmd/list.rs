@@ -70,7 +70,7 @@ pub fn create(ctx: &mut Context) -> Result<()> {
                     created: list.created,
                     modified: list.modified,
                 })?,
-                created: now,
+                timestamp: now,
                 synced: false,
             },
         )?;
@@ -163,7 +163,7 @@ pub fn edit(ctx: &mut Context) -> Result<()> {
                             created: list.created,
                             modified: list.modified,
                         })?,
-                        created: now,
+                        timestamp: now,
                         synced: false,
                     },
                 )?;
@@ -215,7 +215,7 @@ pub fn delete(ctx: &mut Context) -> Result<()> {
                             state: utils::encode_history_state(&models::CmdDeleteState {
                                 uuid: list.uuid,
                             })?,
-                            created: utils::now(),
+                            timestamp: utils::now(),
                             synced: false,
                         },
                     )?;

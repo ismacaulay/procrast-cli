@@ -28,7 +28,7 @@ pub struct History {
     pub uuid: uuid::Uuid,
     pub command: String,
     pub state: String,
-    pub created: i64,
+    pub timestamp: i64,
     pub synced: bool,
 }
 
@@ -37,7 +37,7 @@ pub struct ApiHistory {
     pub uuid: uuid::Uuid,
     pub command: String,
     pub state: String,
-    pub created: i64,
+    pub timestamp: i64,
 }
 
 #[derive(Debug, Deserialize)]

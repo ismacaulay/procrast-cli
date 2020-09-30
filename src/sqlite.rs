@@ -372,7 +372,7 @@ fn row_to_history(row: &rusqlite::Row) -> rusqlite::Result<models::History> {
         uuid: Uuid::parse_str(row.get::<_, String>(0).unwrap().as_str()).unwrap(),
         command: row.get(1)?,
         state: row.get(2)?,
-        created: row.get(3)?,
+        timestamp: row.get(3)?,
         synced: row.get(4)?,
     })
 }
@@ -682,7 +682,7 @@ pub fn create_history(conn: &Connection, history: &models::History) -> utils::Re
             history.uuid.to_hyphenated().to_string(),
             history.command,
             history.state,
-            history.created,
+            history.timestamp,
             history.synced,
         ],
     ) {
