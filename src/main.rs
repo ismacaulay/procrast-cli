@@ -424,6 +424,11 @@ fn main() {
                         short: "i",
                         description: "Mark the item as incomplete",
                     }),
+                    Flag::Switch(FlagDescription {
+                        name: "all",
+                        short: "a",
+                        description: "Show all items",
+                    }),
                 ],
                 subcommands: vec![
                     Command {

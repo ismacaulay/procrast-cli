@@ -588,6 +588,34 @@ pub fn get_items(conn: &Connection, list_uuid: &Uuid) -> utils::Result<Vec<model
     return Ok(items);
 }
 
+pub fn get_incomplete_items(
+    conn: &Connection,
+    list_uuid: &Uuid,
+) -> utils::Result<Vec<models::Item>> {
+    let mut stmt = match conn.prepare(
+        "SELECT uuid, id, title, description, state, created, modified, list_uuid
+                FROM items
+                WHERE list_uuid = ?1
+                AND state = 0",
+    ) {
+        Ok(stmt) => stmt,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let iter = match stmt.query_map(params![list_uuid.to_hyphenated().to_string()], |row| {
+        row_to_item(row)
+    }) {
+        Ok(iter) => iter,
+        Err(e) => return Err(e.to_string()),
+    };
+
+    let mut items = Vec::new();
+    for v in iter {
+        items.push(v.unwrap());
+    }
+    return Ok(items);
+}
+
 pub fn get_item(
     conn: &Connection,
     list_uuid: &Uuid,

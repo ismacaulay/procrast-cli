@@ -109,9 +109,16 @@ pub fn item(ctx: &mut Context) -> Result<()> {
     }
 
     if ctx.params.len() == 0 {
-        let items = match sqlite::get_items(&ctx.db, &list_id) {
-            Ok(items) => items,
-            Err(_) => return Err(format!("Failed to get items for list {}", list_id)),
+        let items = if ctx.data.get("all").is_some() {
+            match sqlite::get_items(&ctx.db, &list_id) {
+                Ok(items) => items,
+                Err(_) => return Err(format!("Failed to get items for list {}", list_id)),
+            }
+        } else {
+            match sqlite::get_incomplete_items(&ctx.db, &list_id) {
+                Ok(items) => items,
+                Err(_) => return Err(format!("Failed to get items for list {}", list_id)),
+            }
         };
 
         let mut printer = TablePrinter::new(vec![
