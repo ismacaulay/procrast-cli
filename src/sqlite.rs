@@ -568,7 +568,11 @@ pub fn get_items(conn: &Connection, list_uuid: &Uuid) -> utils::Result<Vec<model
     let mut stmt = match conn.prepare(
         "SELECT uuid, id, title, description, state, created, modified, list_uuid
                 FROM items
-                WHERE list_uuid = ?1",
+                WHERE list_uuid = ?1
+                ORDER BY
+                    state ASC,
+                    id ASC
+                ",
     ) {
         Ok(stmt) => stmt,
         Err(e) => return Err(e.to_string()),
