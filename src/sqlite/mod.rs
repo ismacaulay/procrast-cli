@@ -10,7 +10,10 @@ use std::{
 };
 use uuid::Uuid;
 
-const DB_VERSION: i16 = 2;
+mod migration;
+pub mod notes;
+
+const DB_VERSION: i16 = 3;
 
 fn get_database_path(name: &str) -> Option<PathBuf> {
     if let Some(data_dir) = config::get_data_dir() {
@@ -94,6 +97,7 @@ fn create_database(conn: &rusqlite::Connection) {
 
 fn backup_database() {
     let db_path_buf = get_database_path("db.sqlite").expect("Failed to get database path");
+    // TODO: this back up file should probably have a timestamp on it
     let db_bak_path_buf = get_database_path("db.sqlite.bak").expect("Failed to get database path");
 
     std::fs::copy(db_path_buf, db_bak_path_buf).expect("Failed to backup database file");
@@ -327,6 +331,7 @@ fn migrate_database(conn: &mut rusqlite::Connection, from: i16) -> utils::Result
                 tx.execute("ALTER TABLE items_update RENAME TO items", NO_PARAMS)
                     .expect("Failed to updated items table");
             }
+            3 => migration::v3(tx)?,
             _ => {}
         }
     }
@@ -351,6 +356,7 @@ fn row_to_list(row: &rusqlite::Row) -> rusqlite::Result<models::List> {
         created: row.get(4)?,
         modified: row.get(5)?,
         next_item_id: row.get(6)?,
+        next_note_id: row.get(7)?,
     })
 }
 
@@ -396,7 +402,7 @@ pub fn transaction<F: FnMut(&rusqlite::Transaction) -> utils::Result<()>>(
 
 pub fn get_lists(conn: &Connection) -> utils::Result<Vec<models::List>> {
     let mut stmt = match conn.prepare(
-        "SELECT uuid, id, title, description, created, modified, next_item_id
+        "SELECT uuid, id, title, description, created, modified, next_item_id, next_note_id
                 FROM lists
                 ORDER BY id",
     ) {
@@ -540,7 +546,7 @@ pub fn delete_list(conn: &Connection, list: &models::List) -> utils::Result<()> 
 
 pub fn find_list_by_uuid(conn: &Connection, uuid: &Uuid) -> utils::Result<models::List> {
     match conn.query_row(
-        "SELECT uuid, id, title, description, created, modified, next_item_id
+        "SELECT uuid, id, title, description, created, modified, next_item_id, next_note_id
             FROM lists
             WHERE uuid = (?1)",
         params![uuid.to_hyphenated().to_string()],
@@ -553,7 +559,7 @@ pub fn find_list_by_uuid(conn: &Connection, uuid: &Uuid) -> utils::Result<models
 
 pub fn find_list_by_id(conn: &Connection, id: &String) -> utils::Result<models::List> {
     match conn.query_row(
-        "SELECT uuid, id, title, description, created, modified, next_item_id
+        "SELECT uuid, id, title, description, created, modified, next_item_id, next_note_id
             FROM lists
             WHERE id = (?1)",
         params![id],

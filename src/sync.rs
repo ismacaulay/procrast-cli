@@ -175,6 +175,7 @@ fn handle_list_create(conn: &rusqlite::Connection, history: &models::ApiHistory)
             created: list.created,
             modified: list.modified,
             next_item_id: 1,
+            next_note_id: 1,
         },
     )?;
     sqlite::set_next_list_id(conn, local_id + 1)?;

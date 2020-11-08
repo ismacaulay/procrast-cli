@@ -55,6 +55,7 @@ pub fn create(ctx: &mut Context) -> Result<()> {
             created: now,
             modified: now,
             next_item_id: 1,
+            next_note_id: 1,
         };
         sqlite::create_list(&tx, &list)?;
         sqlite::set_next_list_id(&tx, list_id + 1)?;
@@ -195,6 +196,10 @@ pub fn delete(ctx: &mut Context) -> Result<()> {
                 match sqlite::transaction(&mut ctx.db, |tx| {
                     for item in sqlite::get_items(tx, &list.uuid)?.iter() {
                         sqlite::delete_item(tx, item)?;
+                    }
+
+                    for note in sqlite::notes::get(tx, &list.uuid)?.iter() {
+                        sqlite::notes::delete(tx, note)?;
                     }
 
                     match sqlite::get_current_list(tx) {
