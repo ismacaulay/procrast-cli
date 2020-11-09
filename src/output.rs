@@ -59,3 +59,11 @@ impl TablePrinter {
         return max_found;
     }
 }
+
+pub fn print(id: i32, title: &String, body: &String) {
+    println!("{}: {}", id, title);
+
+    if body.len() > 0 {
+        println!("\n{}\n", body);
+    }
+}

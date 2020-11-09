@@ -190,7 +190,7 @@ pub fn delete(ctx: &mut Context) -> Result<()> {
 
             println!("Are you sure you want to delete list '{}'?", list.title);
             println!("This cannot be undone!");
-            print!("Enter ther name of the list to confirm: ");
+            print!("Enter the name of the list to confirm: ");
             let result = input::get_stdin_input();
             if result == list.title {
                 match sqlite::transaction(&mut ctx.db, |tx| {
@@ -198,7 +198,7 @@ pub fn delete(ctx: &mut Context) -> Result<()> {
                         sqlite::delete_item(tx, item)?;
                     }
 
-                    for note in sqlite::notes::get(tx, &list.uuid)?.iter() {
+                    for note in sqlite::notes::all(tx, &list.uuid)?.iter() {
                         sqlite::notes::delete(tx, note)?;
                     }
 

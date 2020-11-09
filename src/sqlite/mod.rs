@@ -331,7 +331,10 @@ fn migrate_database(conn: &mut rusqlite::Connection, from: i16) -> utils::Result
                 tx.execute("ALTER TABLE items_update RENAME TO items", NO_PARAMS)
                     .expect("Failed to updated items table");
             }
-            3 => migration::v3(tx)?,
+            3 => {
+                log::println(format!("Migrating to db version 3"));
+                migration::v3(&tx)?;
+            }
             _ => {}
         }
     }
@@ -519,7 +522,7 @@ pub fn create_list(conn: &Connection, list: &models::List) -> utils::Result<()> 
 pub fn update_list(conn: &Connection, list: &models::List) -> utils::Result<()> {
     if let Err(e) = conn.execute(
         "UPDATE lists
-            SET title = ?2, description = ?3, modified = ?4, next_item_id = ?5
+            SET title = ?2, description = ?3, modified = ?4, next_item_id = ?5, next_note_id = ?6
             WHERE uuid = ?1",
         params![
             list.uuid.to_hyphenated().to_string(),
@@ -527,6 +530,7 @@ pub fn update_list(conn: &Connection, list: &models::List) -> utils::Result<()> 
             list.description,
             list.modified,
             list.next_item_id,
+            list.next_note_id,
         ],
     ) {
         return Err(e.to_string());

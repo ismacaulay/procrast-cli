@@ -72,6 +72,12 @@ pub struct CmdDeleteState {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
+pub struct CmdMoveState {
+    pub uuid: uuid::Uuid,
+    pub list: uuid::Uuid,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CmdItemState {
     pub uuid: uuid::Uuid,
     pub title: String,
@@ -99,6 +105,9 @@ pub const CMD_ITEM_CREATE: &'static str = "ITEM CREATE";
 pub const CMD_ITEM_UPDATE: &'static str = "ITEM UPDATE";
 pub const CMD_ITEM_DELETE: &'static str = "ITEM DELETE";
 pub const CMD_NOTE_CREATE: &'static str = "NOTE CREATE";
+pub const CMD_NOTE_UPDATE: &'static str = "NOTE UPDATE";
+pub const CMD_NOTE_DELETE: &'static str = "NOTE DELETE";
+pub const CMD_NOTE_MOVE: &'static str = "NOTE MOVE";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Config {

@@ -284,6 +284,7 @@ fn main() {
                     },
                 ],
             },
+            cmd::notes::command(),
         ],
     };
 

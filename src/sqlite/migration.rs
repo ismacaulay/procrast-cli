@@ -1,7 +1,7 @@
 use crate::utils::Result;
 use rusqlite::{self, NO_PARAMS};
 
-fn v3(tx: &rusqlite::Transaction) -> Result<()> {
+pub fn v3(tx: &rusqlite::Transaction) -> Result<()> {
     let sql_statements = vec![
         "CREATE TABLE notes (
             uuid VARCHAR(36),
@@ -13,7 +13,7 @@ fn v3(tx: &rusqlite::Transaction) -> Result<()> {
             list_uuid VARCHAR(36) REFERENCES lists(uuid),
             PRIMARY KEY (uuid)
         )",
-        "ALTER TABLE lists ADD COLUMN next_notes_id INTEGER NOT NULL DEFAULT 1",
+        "ALTER TABLE lists ADD COLUMN next_note_id INTEGER NOT NULL DEFAULT 1",
     ];
 
     for s in sql_statements.iter() {

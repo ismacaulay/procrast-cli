@@ -1,5 +1,6 @@
 pub mod item;
 pub mod list;
+pub mod notes;
 
 use crate::{log, models, output::TablePrinter, sqlite, utils::Result, Context};
 
@@ -40,6 +41,7 @@ fn find_list_by_uuid(ctx: &Context, uuid: &uuid::Uuid) -> Result<models::List> {
     }
 }
 
+
 fn find_item_by_id(ctx: &Context, list_uuid: &uuid::Uuid, id: &String) -> Result<models::Item> {
     match sqlite::get_item(&ctx.db, list_uuid, id) {
         Ok(item) => Ok(item),
@@ -47,11 +49,19 @@ fn find_item_by_id(ctx: &Context, list_uuid: &uuid::Uuid, id: &String) -> Result
     }
 }
 
+
 fn find_list_or_current(ctx: &Context) -> Result<models::List> {
     if let Some(id) = ctx.data.get("list") {
         return find_list_by_id(ctx, id);
     }
     return find_list_by_uuid(ctx, &get_current_list(ctx)?);
+}
+
+fn find_list_uuid_or_current(ctx: &Context) -> Result<uuid::Uuid> {
+    match ctx.data.get("list") {
+        Some(list) => Ok(find_list_by_id(ctx, list)?.uuid),
+        None => Ok(get_current_list(ctx)?),
+    }
 }
 
 pub fn use_list(ctx: &mut Context) -> Result<()> {
@@ -70,7 +80,7 @@ pub fn use_list(ctx: &mut Context) -> Result<()> {
 pub fn list(ctx: &mut Context) -> Result<()> {
     let lists = match sqlite::get_lists(&ctx.db) {
         Ok(lists) => lists,
-        Err(_) => return Err("Failed to retrieve lists".to_string()),
+        Err(e) => return Err(format!("Failed to retrieve lists: {}", e)),
     };
     let current = match get_current_list(ctx) {
         Ok(uuid) => Some(uuid),
